@@ -8,6 +8,7 @@ namespace WrongQuestion
         {
             Console.WriteLine("Hello World!");
             Console.WriteLine("jija");
+            Console.WriteLine("Неправильный вопрос");
         }
     }
 }

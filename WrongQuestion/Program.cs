@@ -1,38 +1,38 @@
 ﻿using System;
-using Telegram.Bot;
-using Telegram.Bot.Args;
-using Telegram.Bot.Exceptions;
+using System.Collections.Generic;
 
 namespace WrongQuestion
 {
     class Program
     {
-        //Here is the token for bot Jijoba @jijoba_bot:
-        //2098827232:AAFu37Kco2dtw0vFRkNo0DYqKww68hY5Dh0
-        private static string Token => "2098827232:AAFu37Kco2dtw0vFRkNo0DYqKww68hY5Dh0";
-
-        private static TelegramBotClient Bot;
-
         static void Main()
         {
-            Bot = new TelegramBotClient(Token);
-
-            Bot.StartReceiving();
-
-            Bot.OnMessage += OnMessageHandler;
-            Console.ReadKey();
-
-            Bot.StopReceiving();
+            TelegramBot bot = new TelegramBot();
+            bot.Run();
         }
 
-        private static async void OnMessageHandler(object sender, MessageEventArgs e)
+        static void Test()
         {
-            var msg = e.Message;
-            if (msg.Text != null)
-            {
-                Console.WriteLine(msg.Text);
-                await Bot.SendTextMessageAsync(msg.Chat.Id, "Ты написал: " + msg.Text + ". Пошел нахуй теперь.");
-            }
+            Database db = new Database();
+            db.CreateTableComments();
+            db.CreateTableTasks();
+            db.InsertTask
+            (
+                new RedmineTask
+                (
+                    76457,
+                    Tracker.Defect,
+                    "Jopa",
+                    DateTime.Now,
+                    Status.New,
+                    "Razriv",
+                    new List<Comment>()
+                    {
+                        new Comment(new RedmineUser(321, "Jora"), DateTime.Now, "Sdelal pic"),
+                        new Comment(new RedmineUser(432, "Jija"), DateTime.Now, "Jopniy")
+                    }
+                )
+            );
         }
     }
 }

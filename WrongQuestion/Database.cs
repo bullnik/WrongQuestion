@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Text;
 using Microsoft.Data.Sqlite;
 
@@ -7,27 +8,71 @@ namespace WrongQuestion
 {
     public class Database
     {
-        private SqliteConnection _connection;
+        private SqliteConnection _connection = new SqliteConnection("Data Source=usersdata.db");
+        private DatabaseConverter _converter = new DatabaseConverter();
 
         public Database()
         {
-            _connection = new SqliteConnection("Data Source=usersdata.db");
+
         }
 
-        public bool FindTaskById(int id)
+        public bool FindTaskById(int id, out RedmineTask task)
         {
-            return false;
+            _connection.Open();
+
+            var command = new SqliteCommand
+            {
+                Connection = _connection,
+
+                CommandText = "SELECT * " +
+                            "FROM Tasks " +
+                            $"WHERE Id == {id};"
+            };
+
+            var data = command.ExecuteReader();
+
+            if (data.FieldCount == 0) 
+            {
+                task = null;
+                return false;
+            }
+
+            data.Read();
+            int taskId = (int) (long) data.GetValue(0);
+            DateTime dateTime = _converter.StringToDateTime((string)data.GetValue(1));
+            Tracker tracker = _converter.StringToTracker((string) data.GetValue(2));
+            string topic = (string) data.GetValue(3);
+            Status status = _converter.StringToStatus((string) data.GetValue(4));
+            string description = (string) data.GetValue(5);
+
+            command = new SqliteCommand
+            {
+                Connection = _connection,
+
+                CommandText = "SELECT * " +
+                            "FROM Comments " +
+                            $"WHERE TaskId == {id};"
+            };
+
+            List<Comment> comments = new List<Comment>();
+            data = command.ExecuteReader();
+            while (data.Read())
+            {
+                int userId = (int) (long) data.GetValue(1);
+                DateTime commentDateTime = _converter.StringToDateTime((string)data.GetValue(2));
+                string content = (string) data.GetValue(3);
+                comments.Add(new Comment(new RedmineUser(userId, "govno"), commentDateTime, content));
+            }
+
+            task = new RedmineTask(taskId, tracker, topic, dateTime, status, description, comments);
+
+            _connection.Close();
+            return true;
         }
 
         public void InsertTask(RedmineTask task)
         {
             _connection.Open();
-
-            string format = "yyyy-MM-dd HH:mm:ss";
-
-            string text = "INSERT INTO Tasks (Id, DateTime, Tracker, Topic, Status, Description)" +
-                $"VALUES ({task.Id}, '{task.DateTime.ToString(format)}', '{task.Tracker}', " +
-                $"'{task.Topic}', '{task.Status}', '{task.Description}');";
 
             new SqliteCommand
             {
@@ -35,7 +80,7 @@ namespace WrongQuestion
 
                 CommandText =
                 "INSERT INTO Tasks (Id, DateTime, Tracker, Topic, Status, Description)" +
-                $"VALUES ({task.Id}, '{task.DateTime.ToString(format)}', '{task.Tracker}', " +
+                $"VALUES ({task.Id}, '{_converter.DateTimeToString(task.DateTime)}', '{task.Tracker}', " +
                 $"'{task.Topic}', '{task.Status}', '{task.Description}');"
             }
             .ExecuteNonQuery();
@@ -48,7 +93,7 @@ namespace WrongQuestion
 
                     CommandText =
                     "INSERT INTO Comments (TaskId, UserId, DateTime, Content)" +
-                    $"VALUES ({task.Id}, {comment.Author.Id}, '{comment.DateTime.ToString(format)}', " +
+                    $"VALUES ({task.Id}, {comment.Author.Id}, '{_converter.DateTimeToString(comment.DateTime)}', " +
                     $"'{comment.Content}');"
                 }
                 .ExecuteNonQuery();

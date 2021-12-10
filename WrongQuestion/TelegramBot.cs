@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -23,10 +24,35 @@ namespace WrongQuestion
         private static async void OnMessageHandler(object sender, MessageEventArgs e)
         {
             var msg = e.Message;
+
+            RedmineTask redmineTask = new RedmineTask(123, Tracker.Defect, "dss",
+                DateTime.Now, Status.New, "xyi", new List<Comment>() { new Comment(new RedmineUser(232, "pidor"), DateTime.Now, "pizda kicuk"),
+                    new Comment(new RedmineUser(228, "zalupa"), DateTime.Now, "xui kicuk")});
+
+            string comments = "---------------------------\n";
+            foreach (var item in redmineTask.Comments)
+            {
+                comments += "Автор: " + item.Author.Name + '\n' + "Время: " + item.DateTime + '\n' + item.Content + '\n';
+                comments += "---------------------------\n";
+            }
+
+            _bot.SendTextMessageAsync(msg.Chat.Id, "Важность: " + redmineTask.Tracker.ToString() + '\n' + "Заголовок: " + redmineTask.Topic + '\n' +
+                "Время и дата: " + redmineTask.DateTime + '\n' + "Статус выполнения: " + redmineTask.Status.ToString() + '\n' + "Описание: " + redmineTask.Description +
+                '\n' + "Комментарии:\n" + comments);
+
+            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+            {
+                // first row
+                new []
+                {
+                    InlineKeyboardButton.WithCallbackData("Добавить заметку", "11"),
+                    InlineKeyboardButton.WithCallbackData("Поменять статус", "12"),
+                }
+            });
             if (msg.Text != null)
             {
                 Console.WriteLine(msg.Text);
-                await _bot.SendTextMessageAsync(msg.Chat.Id, "Ты написал: " + msg.Text + ". Пошел нахуй теперь.");
+                await _bot.SendTextMessageAsync(msg.Chat.Id, "Нажмите на кнопку:", replyMarkup: inlineKeyboard);
             }
         }
     }

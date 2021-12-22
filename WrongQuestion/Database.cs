@@ -162,7 +162,8 @@ namespace WrongQuestion
                 CREATE TABLE Users
                 (
                     RedmineUserId INTEGER NOT NULL,
-                    TelegramChatId INTEGER NOT NULL
+                    TelegramChatId INTEGER NOT NULL,
+                    TelegramUsername TEXT NOT NULL
                 );
             ";
             command.ExecuteNonQuery();
@@ -182,6 +183,11 @@ namespace WrongQuestion
                 );
             ";
             command.ExecuteNonQuery();
+        }
+
+        public bool isUserLogged(string userLogin)
+        {
+            return true;
         }
     }
 }

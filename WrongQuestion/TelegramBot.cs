@@ -17,42 +17,95 @@ namespace WrongQuestion
             _bot = new TelegramBotClient(Token);
             _bot.StartReceiving();
             _bot.OnMessage += OnMessageHandler;
+            _bot.OnCallbackQuery += OnButtonClick;
             Console.ReadKey();
             _bot.StopReceiving();
         }
 
         private static async void OnMessageHandler(object sender, MessageEventArgs e)
         {
-            var msg = e.Message;
+            if(e.Message.Text == "/start")
+            {
+                if(new Database().isUserLogged(e.Message.From.Username))
+                {
+                    SendTasksForUser(e);
+                }
+                else
+                {
+                    _bot.SendTextMessageAsync(e.Message.Chat.Id, "Введите логин и пароль одной строкой через пробел");
 
-            RedmineTask redmineTask = new RedmineTask(123, Tracker.Defect, "dss",
-                DateTime.Now, Status.New, "xyi", new List<Comment>() { new Comment(new RedmineUser(232, "pidor"), DateTime.Now, "pizda kicuk"),
+
+                }
+            }
+            else
+            {
+
+            }
+        }
+
+        private static async void Authorization(MessageEventArgs e)
+        {
+            if (new Database().isUserLogged(e.Message.From.Username))
+            {
+                SendTasksForUser(e);
+            }
+            else
+            {
+                _bot.SendTextMessageAsync(e.Message.Chat.Id, "Вы ввели неверный пароль или не зарегестрированы в системе, введите пароль");
+                Authorization(e);
+            }
+        }
+
+        private static async void SendTasksForUser(MessageEventArgs e)
+        {
+            var msg = e.Message;
+            RedmineTask redmineTask = new RedmineTask(123, "sdfds", "dss",
+                DateTime.Now, "sadad", "xyi", new List<Comment>() { new Comment(new RedmineUser(232, "pidor"), DateTime.Now, "pizda kicuk"),
                     new Comment(new RedmineUser(228, "zalupa"), DateTime.Now, "xui kicuk")});
 
-            string comments = "---------------------------\n";
-            foreach (var item in redmineTask.Comments)
-            {
-                comments += "Автор: " + item.Author.Name + '\n' + "Время: " + item.DateTime + '\n' + item.Content + '\n';
-                comments += "---------------------------\n";
-            }
+            RedmineTask redmineTask2 = new RedmineTask(124, "sdf2ds", "ds2s",
+                DateTime.Now, "sada2d", "xy2i", new List<Comment>() { new Comment(new RedmineUser(2322, "p2idor"), DateTime.Now, "pizda kic2uk"),
+                    new Comment(new RedmineUser(228, "zalu2pa"), DateTime.Now, "xui k2icuk")});
 
-            _bot.SendTextMessageAsync(msg.Chat.Id, "Важность: " + redmineTask.Tracker.ToString() + '\n' + "Заголовок: " + redmineTask.Topic + '\n' +
-                "Время и дата: " + redmineTask.DateTime + '\n' + "Статус выполнения: " + redmineTask.Status.ToString() + '\n' + "Описание: " + redmineTask.Description +
-                '\n' + "Комментарии:\n" + comments);
+            List<RedmineTask> tasks = new List<RedmineTask>();
+            tasks.Add(redmineTask);
+            tasks.Add(redmineTask2);
 
-            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+
+            foreach (var task in tasks)
             {
-                // first row
-                new []
+                var editing = new InlineKeyboardMarkup(new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Добавить заметку", "11"),
-                    InlineKeyboardButton.WithCallbackData("Поменять статус", "12"),
+                    new []
+                    {
+                        InlineKeyboardButton.WithCallbackData("Добавить заметку", "c" + task.Id.ToString()),
+                        InlineKeyboardButton.WithCallbackData("Поменять статус",  "d" + task.Id.ToString()),
+                    }
+                });
+
+                string comments = "---------------------------\n";
+                foreach (var comment in task.Comments)
+                {
+                    comments += "Автор: " + comment.Author.Name + '\n' + "Время: " + task.DateTime + '\n' + comment.Content + '\n';
+                    comments += "---------------------------\n";
                 }
-            });
-            if (msg.Text != null)
+                await _bot.SendTextMessageAsync(msg.Chat.Id, "Важность: " + task.Tracker.ToString() + '\n' + "Заголовок: " + task.Topic + '\n' +
+                "Время и дата: " + task.DateTime + '\n' + "Статус выполнения: " + task.Status.ToString() + '\n' + "Описание: " + task.Description +
+                '\n' + "Комментарии:\n" + comments, replyMarkup: editing);
+            }
+        }
+        private static async void OnButtonClick(object sender, CallbackQueryEventArgs e)
+        {
+            var d = e.CallbackQuery.Data;
+            if(d[0] == 'c')
             {
-                Console.WriteLine(msg.Text);
-                await _bot.SendTextMessageAsync(msg.Chat.Id, "Нажмите на кнопку:", replyMarkup: inlineKeyboard);
+                _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите текст заметки");
+                Console.WriteLine("xui sovdaem zametku");
+            }
+            if (d[0] == 'd')
+            {
+                _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите текст статуса");
+                Console.WriteLine("jopa menyem status");
             }
         }
     }

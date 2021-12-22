@@ -6,16 +6,16 @@ namespace WrongQuestion
 {
     public class RedmineTask
     {
-        public int Id { get; private set; }
-        public Tracker Tracker { get; private set; }
+        public long Id { get; private set; }
+        public string Tracker { get; private set; }
         public string Topic { get; private set; }
         public DateTime DateTime { get; private set; }
-        public Status Status { get; private set; }
+        public string Status { get; private set; }
         public string Description { get; private set; }
         public List<Comment> Comments { get; private set; }
 
-        public RedmineTask(int id, Tracker tracker, string topic, 
-            DateTime dateTime, Status status, string description,
+        public RedmineTask(long id, string tracker, string topic, 
+            DateTime dateTime, string status, string description,
             List<Comment> comments)
         {
             Id = id;

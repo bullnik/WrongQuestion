@@ -6,7 +6,7 @@ namespace WrongQuestion
 {
     public class DatabaseConverter
     {
-        private string _dateTimeFormat = "yyyy-MM-dd HH:mm:ss";
+        private readonly string _dateTimeFormat = "yyyy-MM-dd HH:mm:ss";
 
         public DateTime StringToDateTime(string value)
         {
@@ -30,34 +30,6 @@ namespace WrongQuestion
         public string DateTimeToString(DateTime value)
         {
             return value.ToString(_dateTimeFormat);
-        }
-
-        public Tracker StringToTracker(string value)
-        {
-            switch (value)
-            {
-                case "Defect":
-                    return Tracker.Defect;
-                case "Feature":
-                    return Tracker.Feature;
-                case "Patch":
-                    return Tracker.Patch;
-                default:
-                    throw new Exception("Invalid value");
-            }
-        }
-
-        public Status StringToStatus(string value)
-        {
-            switch (value)
-            {
-                case "New":
-                    return Status.New;
-                case "Resolved":
-                    return Status.Resolved;
-                default:
-                    throw new Exception("Invalid value");
-            }
         }
     }
 }

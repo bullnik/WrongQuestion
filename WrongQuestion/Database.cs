@@ -1,153 +1,187 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Text;
 using Microsoft.Data.Sqlite;
 
 namespace WrongQuestion
 {
     public class Database
     {
-        private SqliteConnection _connection = new SqliteConnection("Data Source=usersdata.db");
-        private DatabaseConverter _converter = new DatabaseConverter();
+        private readonly string _connectionString = "Data Source=usersdata.db";
+        private readonly DatabaseConverter _converter = new DatabaseConverter();
 
         public Database()
         {
 
         }
 
-        public bool FindTaskById(int id, out RedmineTask task)
+        public bool TryFindTaskById(long id, out RedmineTask task)
         {
-            _connection.Open();
-
-            var command = new SqliteCommand
-            {
-                Connection = _connection,
-
-                CommandText = "SELECT * " +
-                            "FROM Tasks " +
-                            $"WHERE Id == {id};"
-            };
-
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                SELECT *
+                FROM Tasks
+                WHERE Id == $id;
+            ";
+            command.Parameters.AddWithValue("$id", id);
             var data = command.ExecuteReader();
-
             if (data.FieldCount == 0) 
             {
                 task = null;
                 return false;
             }
-
             data.Read();
-            int taskId = (int) (long) data.GetValue(0);
-            DateTime dateTime = _converter.StringToDateTime((string)data.GetValue(1));
-            Tracker tracker = _converter.StringToTracker((string) data.GetValue(2));
-            string topic = (string) data.GetValue(3);
-            Status status = _converter.StringToStatus((string) data.GetValue(4));
-            string description = (string) data.GetValue(5);
+            long taskId = data.GetInt32(0);
+            DateTime dateTime = data.GetDateTime(1);
+            string tracker = data.GetString(2);
+            string topic = data.GetString(3);
+            string status = data.GetString(4);
+            string description = data.GetString(5);
 
-            command = new SqliteCommand
-            {
-                Connection = _connection,
-
-                CommandText = "SELECT * " +
-                            "FROM Comments " +
-                            $"WHERE TaskId == {id};"
-            };
-
+            command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                SELECT *
+                FROM Comments
+                WHERE TaskId == $id;
+            ";
+            command.Parameters.AddWithValue("$id", id);
             List<Comment> comments = new List<Comment>();
             data = command.ExecuteReader();
             while (data.Read())
             {
-                int userId = (int) (long) data.GetValue(1);
-                DateTime commentDateTime = _converter.StringToDateTime((string)data.GetValue(2));
-                string content = (string) data.GetValue(3);
+                long userId = data.GetInt32(1);
+                DateTime commentDateTime = data.GetDateTime(2);
+                string content = data.GetString(3);
                 comments.Add(new Comment(new RedmineUser(userId, "govno"), commentDateTime, content));
             }
-
             task = new RedmineTask(taskId, tracker, topic, dateTime, status, description, comments);
-
-            _connection.Close();
             return true;
         }
 
-        public void InsertTask(RedmineTask task)
+        public void InsertOrUpdateTask(RedmineTask task)
         {
-            _connection.Open();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
 
-            new SqliteCommand
-            {
-                Connection = _connection,
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                DELETE FROM Tasks
+                WHERE Id == $id
+            ";
+            command.Parameters.AddWithValue("$id", task.Id);
+            command.ExecuteNonQuery();
 
-                CommandText =
-                "INSERT INTO Tasks (Id, DateTime, Tracker, Topic, Status, Description)" +
-                $"VALUES ({task.Id}, '{_converter.DateTimeToString(task.DateTime)}', '{task.Tracker}', " +
-                $"'{task.Topic}', '{task.Status}', '{task.Description}');"
-            }
-            .ExecuteNonQuery();
+            command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                DELETE FROM Comments
+                WHERE TaskId == $id
+            ";
+            command.Parameters.AddWithValue("$id", task.Id);
+            command.ExecuteNonQuery();
+
+            command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                INSERT INTO Tasks (Id, DateTime, Tracker, Topic, Status, Description)
+                VALUES ($id, $dateTime, $tracker, $topic, $status, $desc);
+            ";
+            command.Parameters.AddWithValue("$id", task.Id);
+            command.Parameters.AddWithValue("$dateTime", _converter.DateTimeToString(task.DateTime));
+            command.Parameters.AddWithValue("$tracker", task.Tracker);
+            command.Parameters.AddWithValue("$topic", task.Topic);
+            command.Parameters.AddWithValue("$status", task.Status);
+            command.Parameters.AddWithValue("$desc", task.Description);
+            command.ExecuteNonQuery();
 
             foreach (Comment comment in task.Comments)
             {
-                new SqliteCommand
-                {
-                    Connection = _connection,
-
-                    CommandText =
-                    "INSERT INTO Comments (TaskId, UserId, DateTime, Content)" +
-                    $"VALUES ({task.Id}, {comment.Author.Id}, '{_converter.DateTimeToString(comment.DateTime)}', " +
-                    $"'{comment.Content}');"
-                }
-                .ExecuteNonQuery();
+                command = connection.CreateCommand();
+                command.CommandText =
+                @"
+                    INSERT INTO Comments (TaskId, UserId, DateTime, Content)
+                    VALUES ($id, $authorId, $dateTime, $content);
+                ";
+                command.Parameters.AddWithValue("$id", task.Id);
+                command.Parameters.AddWithValue("$authorId", comment.Author.Id);
+                command.Parameters.AddWithValue("$dateTime", _converter.DateTimeToString(comment.DateTime));
+                command.Parameters.AddWithValue("$content", comment.Content);
+                command.ExecuteNonQuery();
             }
-
-            _connection.Close();
         }
 
-        public void CreateTableTasks()
+        private void CreateTableTasks()
         {
-            _connection.Open();
-
-            SqliteCommand command = new SqliteCommand
-            {
-                Connection = _connection,
-
-                CommandText =
-                "CREATE TABLE Tasks" +
-                "(" +
-                "Id INTEGER NOT NULL," +
-                "DateTime DATETIME NOT NULL," +
-                "Tracker TEXT NOT NULL," +
-                "Topic TEXT NOT NULL," +
-                "Status TEXT NOT NULL," +
-                "Description TEXT NOT NULL" +
-                ");"
-            };
-
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                CREATE OR REPLACE TABLE Tasks
+                (
+                    Id INTEGER NOT NULL,
+                    DateTime DATETIME NOT NULL,
+                    Tracker TEXT NOT NULL,
+                    Topic TEXT NOT NULL,
+                    Status TEXT NOT NULL,
+                    Description TEXT NOT NULL
+                );
+            ";
             command.ExecuteNonQuery();
-
-            _connection.Close();
         }
 
-        public void CreateTableComments()
+        private void CreateTableComments()
         {
-            _connection.Open();
-
-            SqliteCommand command = new SqliteCommand
-            {
-                Connection = _connection,
-
-                CommandText =
-                "CREATE TABLE Comments" +
-                "(" +
-                "TaskId INTEGER NOT NULL," +
-                "UserId INTEGER NOT NULL," +
-                "DateTime DATETIME NOT NULL," +
-                "Content TEXT NOT NULL" +
-                ");"
-            };
-
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                CREATE TABLE Comments
+                (
+                    TaskId INTEGER NOT NULL,
+                    UserId INTEGER NOT NULL,
+                    DateTime DATETIME NOT NULL,
+                    Content TEXT NOT NULL
+                );
+            ";
             command.ExecuteNonQuery();
+        }
 
-            _connection.Close();
+        private void CreateTableUsers()
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                CREATE TABLE Users
+                (
+                    RedmineUserId INTEGER NOT NULL,
+                    TelegramChatId INTEGER NOT NULL
+                );
+            ";
+            command.ExecuteNonQuery();
+        }
+
+        private void CreateTableMessages()
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                CREATE TABLE Messages
+                (
+                    ChatId INTEGER NOT NULL,
+                    TaskId INTEGER NOT NULL
+                );
+            ";
+            command.ExecuteNonQuery();
         }
     }
 }

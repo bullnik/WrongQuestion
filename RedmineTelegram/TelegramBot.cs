@@ -12,16 +12,23 @@ namespace RedmineTelegram
         //Token for bot Jijoba @jijoba_bot:
         private string Token => "2098827232:AAFu37Kco2dtw0vFRkNo0DYqKww68hY5Dh0";
         private readonly RedmineDatabase _redmineDatabase;
+        private readonly InternalDatabase _internalDatabase;
 
-        public TelegramBot(RedmineDatabase redmineDatabase)
+        public TelegramBot(RedmineDatabase redmineDatabase, InternalDatabase internalDatabase)
         {
             _redmineDatabase = redmineDatabase;
+            _internalDatabase = internalDatabase;
             _bot = new TelegramBotClient(Token);
             _bot.OnMessage += OnMessageHandler;
             _bot.OnCallbackQuery += OnButtonClick;
         }
 
-        public void SendNewIssueToUser()
+        public async void SendNewIssueToUser(long telegramUserId)
+        {
+            await _bot.SendTextMessageAsync(telegramUserId, "hello");
+        }
+
+        public void SendClosedIssueToUser(long telegramUserId)
         {
 
         }
@@ -39,38 +46,48 @@ namespace RedmineTelegram
             }
         }
 
-        private async void GetTasks(long chatId)
-        {
-            var functions = new InlineKeyboardMarkup(new[]
-            {
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("Посмотреть мои задачи ☻", "Просмотр задач"),
-                }
-            });
-            await _bot.SendTextMessageAsync(chatId, 
-                "Вы успешно авторизованы, выберите функции ниже.", 
-                replyMarkup: functions);
-        }
-
         private async void OnMessageHandler(object sender, MessageEventArgs e)
         {
             string text = e.Message.Text;
-            if (e.Message.Text == "/start")
+            long userId = e.Message.Chat.Id;
+            bool isUserLoginInRedmine = _redmineDatabase.TryGetRedmineUserIdByTelegram(
+                e.Message.From.Username, out long redmineUserId);
+            _internalDatabase.InsertUserToDatabase(e.Message.Chat.Id, e.Message.Chat.Username);
+
+            if (!isUserLoginInRedmine)
             {
-                GetTasks(e.Message.Chat.Id);
+                await _bot.SendTextMessageAsync(e.Message.Chat.Id, "Укажите ваш Telegram в Redmine для авторизации");
+                return;
             }
-            else
+
+            var changedIssueAndExpectedAction = _internalDatabase.GetChangedIssueAndExpectedActionByUserId(userId);
+
+            if (changedIssueAndExpectedAction.Item1 == ExpectedAction.Nothing)
             {
-                await _bot.SendTextMessageAsync(e.Message.Chat.Id, "Введите команду /start для старта бота.");
+                ShowMenu(e.Message.Chat.Id);
+            }
+            else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForNewStatusId)
+            {
+
+            }
+            else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForLaborCosts)
+            {
+
             }
         }
-
 
         private async void OnButtonClick(object sender, CallbackQueryEventArgs e)
         {
             var callbackData = e.CallbackQuery.Data;
-            var cansel = new InlineKeyboardMarkup(new[]
+            string username = e.CallbackQuery.From.Username;
+            bool userSavedInDatabase = _internalDatabase.TryGetUserTelegramIdByUsername(username, out long userId);
+            bool isUserLoginInRedmine = _redmineDatabase.TryGetRedmineUserIdByTelegram(
+                        username, out long redmineUserId);
+            if (!isUserLoginInRedmine)
+            {
+                return;
+            }
+            var cancel = new InlineKeyboardMarkup(new[]
             {
                 new []
                 {
@@ -79,44 +96,57 @@ namespace RedmineTelegram
             });
             if (callbackData == "Просмотр задач")
             {
-                List<NormalIssue> tasks = _redmineDatabase.GetUserIssues();
-                foreach (NormalIssue task in tasks)
-                {
-                    var editing = new InlineKeyboardMarkup(new[]
-                    {
-                        new []
-                        {
-                            InlineKeyboardButton.WithCallbackData("Поменять статус", "s" + task.Id.ToString()),
-                            InlineKeyboardButton.WithCallbackData("Поменять трудозатраты", "w" + task.Id.ToString()),
-                            InlineKeyboardButton.WithCallbackData("Указать комментарий", "c" + task.Id.ToString()),
-                        }
-                    });
-                    await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Статус задачи: " + task.StatusId + '\n' + "Описание задачи: "
-                        + task.Description + '\n' + "Примерное время выполнения: " + task.EstimatedHours, replyMarkup: editing);
-                }
+                List<NormalIssue> tasks = _redmineDatabase.GetUserIssues(redmineUserId);
+                WatchIssues(e.CallbackQuery.Message.Chat.Id, tasks);
             }
             else if (callbackData[0] == 's')
             {
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите статус задачи.", replyMarkup: cansel);
-                //RedmineDatabase.ChangeTelegramChatStatus(taskId, TelegramChatStatus.AuthorizedAndWaitingForComment);
-                //нужно поменять в базе данных статус
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите статус задачи.", replyMarkup: cancel);
+                long issueId = long.Parse(callbackData[1..]);
+                _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForNewStatusId, issueId);
             }
             else if (callbackData[0] == 'w')
             {
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите трудозатраты.", replyMarkup: cansel);
-                //RedmineDatabase.ChangeTelegramChatStatus(taskId, TelegramChatStatus.AuthorizedAndWaitingForComment);
-                //нужно поменять в базу данных трудозатраты
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите трудозатраты.", replyMarkup: cancel);
+                long issueId = long.Parse(callbackData[1..]);
+                _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForLaborCosts, issueId);
             }
-            else if (callbackData[0] == 'c')
+            else if (callbackData == "Отмена")
             {
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите комментарий.", replyMarkup: cansel);
-                //RedmineDatabase.ChangeTelegramChatStatus(taskId, TelegramChatStatus.AuthorizedAndWaitingForComment);
-                //нужно поменять в базу данных комментарий
+                List<NormalIssue> tasks = _redmineDatabase.GetUserIssues(redmineUserId);
+                WatchIssues(e.CallbackQuery.Message.Chat.Id, tasks);
             }
-            else if (callbackData == "Отменить")
+        }
+
+        private async void WatchIssues(long chatId, List<NormalIssue> tasks)
+        {
+            foreach (NormalIssue task in tasks)
             {
-                GetTasks(e.CallbackQuery.Message.Chat.Id);
+                var editing = new InlineKeyboardMarkup(new[]
+                {
+                        new []
+                        {
+                            InlineKeyboardButton.WithCallbackData("Поменять статус", "s" + task.Id.ToString()),
+                            InlineKeyboardButton.WithCallbackData("Поменять трудозатраты", "w" + task.Id.ToString())
+                        }
+                    });
+                await _bot.SendTextMessageAsync(chatId, "Статус задачи: " + task.Status + '\n' + "Описание задачи: "
+                    + task.Description + '\n' + "Примерное время выполнения: " + task.EstimatedHours, replyMarkup: editing);
             }
+        }
+
+        private async void ShowMenu(long chatId)
+        {
+            var functions = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Посмотреть мои задачи ☻", "Просмотр задач"),
+                }
+            });
+            await _bot.SendTextMessageAsync(chatId,
+                "Вы успешно авторизованы, выберите функции ниже.",
+                replyMarkup: functions);
         }
     }
 }

@@ -16,6 +16,110 @@ namespace RedmineTelegram
 
         }
 
+        public Tuple<ExpectedAction, long> GetChangedIssueAndExpectedActionByUserId(long userId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT ExpectedAction, ChangedIssueId 
+                FROM Users
+                WHERE TelegramUserId == $id
+            ";
+            command.Parameters.AddWithValue("$id", userId);
+            var data = command.ExecuteReader();
+            data.Read();
+            int a = 0;
+            long b = 0;
+            if (data.HasRows)
+            {
+                a = data.GetInt32(0);
+                b = data.GetInt64(1);
+            }
+            connection.Close();
+            return new Tuple<ExpectedAction, long>((ExpectedAction)a, b);
+        }
+
+        public void ChangeIssueAndExpectedActionByUserId(ExpectedAction action, long issueId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = @"
+                UPDATE Users
+                SET ExpectedAction = $action, ChangedIssueId = $id
+                WHERE TelegramUserId == 842190162;
+            ";
+            command.Parameters.AddWithValue("$action", action);
+            command.Parameters.AddWithValue("$id", issueId);
+            var data = command.ExecuteNonQuery();
+            connection.Close();
+        }
+
+        public void InsertUserToDatabase(long telegramUserId, string username)
+        {
+            if (IsUserInDatabase(telegramUserId))
+            {
+                return;
+            }
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = 
+                @"
+                    INSERT INTO Users (TelegramUserId, TelegramUsername, ExpectedAction, ChangedIssueId)
+                        VALUES ($tid, $username, 0, 0)
+                ";
+            command.Parameters.AddWithValue("$tid", telegramUserId);
+            command.Parameters.AddWithValue("$username", username);
+            command.ExecuteNonQuery();
+            connection.Close();
+        }
+
+        public bool IsUserInDatabase(long userId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = 
+                @"
+                    SELECT * FROM Users WHERE TelegramUserId == $id
+                ";
+            command.Parameters.AddWithValue("$id", userId);
+            var data = command.ExecuteReader();
+            data.Read();
+            if (data.HasRows)
+            {
+                connection.Close();
+                return true;
+            }
+            connection.Close();
+            return false;
+        }
+
+        public bool TryGetUserTelegramIdByUsername(string telegramUsername, out long telegramUserId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+                @"
+                    SELECT TelegramUserId FROM Users WHERE TelegramUsername == $id
+                ";
+            command.Parameters.AddWithValue("$id", telegramUsername);
+            var data = command.ExecuteReader();
+            data.Read();
+            telegramUserId = 0;
+            if (data.HasRows)
+            {
+                telegramUserId = data.GetInt64(0);
+                connection.Close();
+                return true;
+            }
+            connection.Close();
+            return false;
+        }
+
         public bool TryGetIssueById(int id, out Issue issue)
         {
             using var connection = new SqliteConnection(_connectionString);
@@ -43,6 +147,7 @@ namespace RedmineTelegram
                 return true;
             }
             issue = new Issue(a, da, b > 0, sa);
+            connection.Close();
             return false;
         }
 
@@ -53,6 +158,7 @@ namespace RedmineTelegram
             SqliteCommand command = connection.CreateCommand();
             command.CommandText = commandText;
             var data = command.ExecuteReader();
+            connection.Close();
             return data;
         }
 
@@ -63,6 +169,7 @@ namespace RedmineTelegram
             SqliteCommand command = connection.CreateCommand();
             command.CommandText = commandText;
             command.ExecuteNonQuery();
+            connection.Close();
         }
 
         private readonly string CreateTableIssuesCommandText = 
@@ -73,6 +180,17 @@ namespace RedmineTelegram
                     Closed INTEGER,
                     AssignedTo INTEGER,
                     Status INTEGER
+                );
+            ";
+
+        private readonly string CreateTableUsersCommandText =
+            @"
+                CREATE TABLE Users 
+                (
+                    TelegramUserId INTEGER,
+                    TelegramUsername INTEGER,
+                    ExpectedAction INTEGER,
+                    ChangedIssueId INTEGER
                 );
             ";
     }

@@ -8,55 +8,104 @@ namespace WrongQuestion
 {
     class TelegramBot
     {
-        private static TelegramBotClient _bot;
+        private TelegramBotClient _bot;
+        private Database _database;
+        private RedmineConnector _redmine;
         //Here is the token for bot Jijoba @jijoba_bot:
-        private static string Token => "2098827232:AAFu37Kco2dtw0vFRkNo0DYqKww68hY5Dh0";
+        private string Token => "2098827232:AAFu37Kco2dtw0vFRkNo0DYqKww68hY5Dh0";
 
         public void Run()
         {
             _bot = new TelegramBotClient(Token);
-            _bot.StartReceiving();
+            _database = new Database();
+            _redmine = new RedmineConnector();
             _bot.OnMessage += OnMessageHandler;
             _bot.OnCallbackQuery += OnButtonClick;
-            Console.ReadKey();
-            _bot.StopReceiving();
+            _bot.StartReceiving();
         }
 
-        private static async void OnMessageHandler(object sender, MessageEventArgs e)
+        public void Stop()
         {
-            if(e.Message.Text == "/start")
+            if (_bot.IsReceiving)
             {
-                if(new Database().isUserLogged(e.Message.From.Username))
+                _bot.StopReceiving();
+            }
+        }
+
+        private async void OnMessageHandler(object sender, MessageEventArgs e)
+        {
+            TelegramChatStatus status = _database.GetTelegramChatStatus(e.Message.Chat.Id);
+
+            if (e.Message.Text == "/start")
+            {
+                if (status > 0)
                 {
                     SendTasksForUser(e);
                 }
                 else
                 {
-                    _bot.SendTextMessageAsync(e.Message.Chat.Id, "Введите логин и пароль одной строкой через пробел");
-
-
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, 
+                        "Ваш аккаунт не связан с Redmine, для соединения введите логин от Redmine.");
                 }
             }
-            else
+            else if (status == TelegramChatStatus.Unauthorized)
             {
-
+                if (_redmine.CheckLogin(e.Message.From.Username, e.Message.Text))
+                {
+                    _database.InsertUser(e.Message.Chat.Id);
+                }
+                else
+                {
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, 
+                        "Вы ввели неверный логин, попробуйте снова.");
+                }
+                
+            }
+            else if (status == TelegramChatStatus.AuthorizedAndWaitingForChangeStatus)
+            {
+                if (_database.TryGetLatestChangedTaskIdByChatId(e.Message.Chat.Id, out long taskId))
+                {
+                    if (_redmine.ChangeStatus(taskId, e.Message.Text))
+                    {
+                        await _bot.SendTextMessageAsync(e.Message.Chat.Id, 
+                            "Статус изменён.");
+                    }
+                    else
+                    {
+                        await _bot.SendTextMessageAsync(e.Message.Chat.Id,
+                            "Не удалось изменить статус.");
+                    }
+                }
+                else
+                {
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id,
+                            "Не удалось изменить статус.");
+                }
+            }
+            else if (status == TelegramChatStatus.AuthorizedAndWaitingForComment)
+            {
+                if (_database.TryGetLatestChangedTaskIdByChatId(e.Message.Chat.Id, out long taskId))
+                {
+                    if (_redmine.AttachComment(taskId, e.Message.Text))
+                    {
+                        await _bot.SendTextMessageAsync(e.Message.Chat.Id,
+                            "Комментарий прикреплён.");
+                    }
+                    else
+                    {
+                        await _bot.SendTextMessageAsync(e.Message.Chat.Id,
+                            "Не удалось прикрепить комментарий.");
+                    }
+                }
+                else
+                {
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id,
+                            "Не удалось прикрепить комментарий.");
+                }
             }
         }
 
-        private static async void Authorization(MessageEventArgs e)
-        {
-            if (new Database().isUserLogged(e.Message.From.Username))
-            {
-                SendTasksForUser(e);
-            }
-            else
-            {
-                _bot.SendTextMessageAsync(e.Message.Chat.Id, "Вы ввели неверный пароль или не зарегестрированы в системе, введите пароль");
-                Authorization(e);
-            }
-        }
-
-        private static async void SendTasksForUser(MessageEventArgs e)
+        private async void SendTasksForUser(MessageEventArgs e)
         {
             var msg = e.Message;
             RedmineTask redmineTask = new RedmineTask(123, "sdfds", "dss",
@@ -94,18 +143,19 @@ namespace WrongQuestion
                 '\n' + "Комментарии:\n" + comments, replyMarkup: editing);
             }
         }
-        private static async void OnButtonClick(object sender, CallbackQueryEventArgs e)
+        private async void OnButtonClick(object sender, CallbackQueryEventArgs e)
         {
-            var d = e.CallbackQuery.Data;
-            if(d[0] == 'c')
+            var callbackData = e.CallbackQuery.Data;
+            long taskId = long.Parse(callbackData[1..]);
+            if(callbackData[0] == 'c')
             {
-                _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите текст заметки");
-                Console.WriteLine("xui sovdaem zametku");
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите текст комментария.");
+                _database.ChangeTelegramChatStatus(taskId, TelegramChatStatus.AuthorizedAndWaitingForComment);
             }
-            if (d[0] == 'd')
+            if (callbackData[0] == 'd')
             {
-                _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите текст статуса");
-                Console.WriteLine("jopa menyem status");
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите текст статуса.");
+                _database.ChangeTelegramChatStatus(taskId, TelegramChatStatus.AuthorizedAndWaitingForChangeStatus);
             }
         }
     }

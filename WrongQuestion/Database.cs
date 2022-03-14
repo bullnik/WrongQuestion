@@ -27,7 +27,7 @@ namespace WrongQuestion
             ";
             command.Parameters.AddWithValue("$id", id);
             var data = command.ExecuteReader();
-            if (data.FieldCount == 0) 
+            if (!data.HasRows) 
             {
                 task = null;
                 return false;
@@ -114,6 +114,58 @@ namespace WrongQuestion
             }
         }
 
+        public bool TryFindUserByChatId(long chatId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                SELECT *
+                FROM Users
+                WHERE TelegramChatId == $id;
+            ";
+            command.Parameters.AddWithValue("$id", chatId);
+            var data = command.ExecuteReader();
+            data.Read();
+            return data.FieldCount > 0;
+        }
+
+        public bool TryFindUserByTelegramUsername(string telegramLogin)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                SELECT *
+                FROM Users
+                WHERE TelegramUsername == $login;
+            ";
+            command.Parameters.AddWithValue("$login", telegramLogin);
+            var data = command.ExecuteReader();
+            data.Read();
+            return data.FieldCount > 0;
+        }
+
+        public bool ChangeTelegramChatStatus(long chatId, TelegramChatStatus status)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                SELECT LatestChangedTaskId
+                UPDATE Users
+                SET TelegramChatStatus = $status
+                WHERE TelegramChatId == $id;
+            ";
+            command.Parameters.AddWithValue("$id", chatId);
+            command.Parameters.AddWithValue("$status", (long) status);
+            command.ExecuteNonQuery();
+            return true;
+        }
+
         private void CreateTableTasks()
         {
             using var connection = new SqliteConnection(_connectionString);
@@ -152,6 +204,27 @@ namespace WrongQuestion
             command.ExecuteNonQuery();
         }
 
+        public void InsertUser(long chatId, string redmineUsername = "", 
+                        string telegramUsername = "", int redmineId = 0)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                INSERT INTO Users (RedmineUserId, RedmineUsername, TelegramChatId, 
+                    TelegramUsername, TelegramChatStatus)
+                VALUES ($redId, $redUN, $telCI, $telUN, $telCS);
+            ";
+            command.Parameters.AddWithValue("$redId", redmineId);
+            command.Parameters.AddWithValue("$redUN", redmineUsername);
+            command.Parameters.AddWithValue("$telCI", chatId);
+            command.Parameters.AddWithValue("$telUN", telegramUsername);
+            command.Parameters.AddWithValue("$telCS", 1);
+            command.ExecuteNonQuery();
+        }
+
         private void CreateTableUsers()
         {
             using var connection = new SqliteConnection(_connectionString);
@@ -161,12 +234,41 @@ namespace WrongQuestion
             @"
                 CREATE TABLE Users
                 (
-                    RedmineUserId INTEGER NOT NULL,
+                    RedmineUserId INTEGER,
+                    RedmineUsername TEXT,
                     TelegramChatId INTEGER NOT NULL,
-                    TelegramUsername TEXT NOT NULL
+                    TelegramUsername TEXT, 
+                    TelegramChatStatus INTEGER NOT NULL,
+                    LatestChangedTaskId INTEGER
                 );
             ";
             command.ExecuteNonQuery();
+        }
+
+        public bool TryGetLatestChangedTaskIdByChatId(long chatId, out long taskId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                SELECT LatestChangedTaskId
+                FROM Users
+                WHERE TelegramChatId == $id;
+            ";
+            command.Parameters.AddWithValue("$id", chatId);
+            var data = command.ExecuteReader();
+            data.Read();
+            if (data.FieldCount > 0)
+            {
+                taskId = data.GetInt32(0);
+                return true;
+            }
+            else
+            {
+                taskId = 0;
+                return false;
+            }
         }
 
         private void CreateTableMessages()
@@ -185,9 +287,33 @@ namespace WrongQuestion
             command.ExecuteNonQuery();
         }
 
-        public bool isUserLogged(string userLogin)
+        public bool isUserLogged(string telegramLogin = "", long telegramId = 0)
         {
-            return true;
+            return TryFindUserByChatId(telegramId) || TryFindUserByTelegramUsername(telegramLogin);
+        }
+
+        public TelegramChatStatus GetTelegramChatStatus(long chatId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+            @"
+                SELECT TelegramChatStatus
+                FROM Users
+                WHERE TelegramChatId == $id;
+            ";
+            command.Parameters.AddWithValue("$id", chatId);
+            var data = command.ExecuteReader();
+            data.Read();
+            if (data.HasRows)
+            {
+                return (TelegramChatStatus) data.GetInt32(0);
+            }
+            else
+            {
+                return 0;
+            }
         }
     }
 }

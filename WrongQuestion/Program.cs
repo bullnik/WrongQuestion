@@ -9,6 +9,7 @@ namespace WrongQuestion
         {
             TelegramBot bot = new TelegramBot();
             bot.Run();
+            Console.ReadKey();
         }
     }
 }

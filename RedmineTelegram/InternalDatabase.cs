@@ -13,7 +13,37 @@ namespace RedmineTelegram
 
         public InternalDatabase()
         {
-            ExecuteNonQueryCommand(CreateTableSavedTasksCommandText);
+
+        }
+
+        public bool TryGetIssueById(int id, out Issue issue)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT * 
+                FROM Issues
+                WHERE Id == $id
+            ";
+            command.Parameters.AddWithValue("$id", id);
+            var data = command.ExecuteReader();
+            int a = 0;
+            int b = 0;
+            int da = 0;
+            int sa = 0;
+            data.Read();
+            if (data.HasRows)
+            {
+                a = data.GetInt32(0);
+                b = data.GetInt32(1);
+                da = data.GetInt32(2);
+                sa = data.GetInt32(3);
+                issue = new Issue(a, da, b > 0, sa);
+                return true;
+            }
+            issue = new Issue(a, da, b > 0, sa);
+            return false;
         }
 
         private SqliteDataReader ExecuteReaderCommand(string commandText)
@@ -35,16 +65,14 @@ namespace RedmineTelegram
             command.ExecuteNonQuery();
         }
 
-        private readonly string CreateTableSavedTasksCommandText = 
+        private readonly string CreateTableIssuesCommandText = 
             @"
-                CREATE TABLE SavedTasks
+                CREATE TABLE Issues
                 (
-                    id INTEGER,
-                    RedmineUsername TEXT,
-                    TelegramChatId INTEGER NOT NULL,
-                    TelegramUsername TEXT, 
-                    TelegramChatStatus INTEGER NOT NULL,
-                    LatestChangedTaskId INTEGER
+                    Id INTEGER,
+                    Closed INTEGER,
+                    AssignedTo INTEGER,
+                    Status INTEGER
                 );
             ";
     }

@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31005.135
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WrongQuestion", "WrongQuestion\WrongQuestion.csproj", "{91E18D91-B14B-4B22-8951-8067E77D211D}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedmineTelegram", "RedmineTelegram\RedmineTelegram.csproj", "{F9325211-8A33-44CC-944E-EA41A6FDD890}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{EDF192FE-DF4F-4E2F-817C-56B65510AC6B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,14 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{91E18D91-B14B-4B22-8951-8067E77D211D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{91E18D91-B14B-4B22-8951-8067E77D211D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{91E18D91-B14B-4B22-8951-8067E77D211D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{91E18D91-B14B-4B22-8951-8067E77D211D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F9325211-8A33-44CC-944E-EA41A6FDD890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F9325211-8A33-44CC-944E-EA41A6FDD890}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9325211-8A33-44CC-944E-EA41A6FDD890}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9325211-8A33-44CC-944E-EA41A6FDD890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDF192FE-DF4F-4E2F-817C-56B65510AC6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDF192FE-DF4F-4E2F-817C-56B65510AC6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDF192FE-DF4F-4E2F-817C-56B65510AC6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDF192FE-DF4F-4E2F-817C-56B65510AC6B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -4,12 +4,13 @@ namespace RedmineTelegram
 {
     public sealed class RedmineDatabase
     {
-        public void GetUserTasks()
+        // берет последние 
+        public void GetUserIssues(int count)
         {
 
         }
 
-        public void LoadLastEditedTasks()
+        public void LoadLastEditedIssues()
         {
 
         }

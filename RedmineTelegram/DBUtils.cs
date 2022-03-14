@@ -6,11 +6,11 @@ namespace RedmineTelegram
     {
         public static MySqlConnection GetDBConnection()
         {
-            string host = "192.168.205.130";
-            int port = 3306;
-            string database = "simplehr";
-            string username = "root";
-            string password = "1234";
+            string host = "4.tcp.ngrok.io";
+            int port = 17211;
+            string database = "";
+            string username = "admindb";
+            string password = "password123";
 
             return DBMySQLUtils.GetDBConnection(host, port, database, username, password);
         }

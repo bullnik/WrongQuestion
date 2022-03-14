@@ -42,7 +42,7 @@ namespace RedmineTelegram
             string text = e.Message.Text;
             if (e.Message.Text == "/start")
             {
-                await _bot.SendTextMessageAsync(e.Message.Chat.Id, text);
+
             }
         }
 

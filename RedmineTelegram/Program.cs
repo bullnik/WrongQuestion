@@ -8,7 +8,12 @@ namespace RedmineTelegram
     {
         static void Main(string[] args)
         {
-            TestConnection();
+            TelegramBot bot = new TelegramBot();
+            bot.StartReceiving();
+            while (true)
+            {
+                Thread.Sleep(1000);
+            }
         }
 
         static void TestConnection()

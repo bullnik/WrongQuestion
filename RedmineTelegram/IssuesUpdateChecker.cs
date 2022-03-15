@@ -21,9 +21,9 @@ namespace RedmineTelegram
             _telegramBot = telegramBot;
         }
 
-        public async void StartChecking()
+        public  void StartChecking()
         {
-            await Task.Run(() => Check());
+             Check();
         }
 
         private void Check()

@@ -48,7 +48,7 @@ namespace RedmineTelegram
             SqliteCommand command = connection.CreateCommand();
             command.CommandText = @"
                 UPDATE Users
-                SET ExpectedAction = $action, ChangedIssueId = $issueid
+                SET ExpectedAction = $action, ChangedIssueId = $issueId
                 WHERE TelegramUserId == $userId;
             ";
             command.Parameters.AddWithValue("$action", action);

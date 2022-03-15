@@ -94,12 +94,14 @@ namespace RedmineTelegram
                 if (int.TryParse(userMessage, out int laborCost))
                 {
                     _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost);
-                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "Укажите ваш Telegram в Redmine для авторизации");
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "Успешно изменён");
                 }
                 else
                 {
                     await _bot.SendTextMessageAsync(e.Message.Chat.Id, "Неверный формат времени.");
                 }
+                _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
+                ShowMenu(userId);
             }
         }
 
@@ -130,10 +132,19 @@ namespace RedmineTelegram
                 List<NormalIssue> tasks = _redmineDatabase.GetUserIssues(redmineUserId);
                 WatchIssues(e.CallbackQuery.Message.Chat.Id, tasks);
             }
-            else if (command == "ChangeStatus")
+            else if (command == "ChangeStatus")           
             {
-                int statusId = _redmineDatabase.GetStatusIdByName(callbackData[1]);
-                long issueId = long.Parse(callbackData[2]);
+                string status = "";
+                if (callbackData.Length >= 2)
+                { 
+                    for (int i=1; i < callbackData.Length-1; i++)
+                    {
+                        status += callbackData[i] + " ";
+                    }
+                    status = status.Substring(0, status.Length-1);
+                }
+                int statusId = _redmineDatabase.GetStatusIdByName(status);
+                long issueId = long.Parse(callbackData[callbackData.Length-1]);
                 if (_redmineDatabase.ChangeIssueStatus(issueId, statusId))
                 {
                     await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, 

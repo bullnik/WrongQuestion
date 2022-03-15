@@ -6,15 +6,15 @@ namespace RedmineTelegram
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             InternalDatabase internalDatabase = new();
             RedmineDatabase redmineDatabase = new();
 
-            TelegramBot bot = new(redmineDatabase, internalDatabase);
-            bot.StartReceiving();
+            TelegramBot telegramBot = new(redmineDatabase, internalDatabase);
+            telegramBot.StartReceiving();
 
-            IssuesUpdateChecker issuesUpdateChecker = new(internalDatabase, redmineDatabase);
+            IssuesUpdateChecker issuesUpdateChecker = new(internalDatabase, redmineDatabase, telegramBot);
             issuesUpdateChecker.StartChecking();
 
             while (true)

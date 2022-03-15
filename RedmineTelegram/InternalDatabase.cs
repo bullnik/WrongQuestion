@@ -13,10 +13,11 @@ namespace RedmineTelegram
 
         public InternalDatabase()
         {
-
+            ExecuteNonQueryCommand(CreateTableIssuesCommandText);
+            ExecuteNonQueryCommand(CreateTableUsersCommandText);
         }
 
-        public Tuple<ExpectedAction, long> GetChangedIssueAndExpectedActionByUserId(long userId)
+        public Tuple<ExpectedAction, long> GetExpectedActionAndChangedIssueByUserId(long userId)
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
@@ -29,29 +30,30 @@ namespace RedmineTelegram
             command.Parameters.AddWithValue("$id", userId);
             var data = command.ExecuteReader();
             data.Read();
-            int a = 0;
-            long b = 0;
+            int expectedAction = 0;
+            long issueId = 0;
             if (data.HasRows)
             {
-                a = data.GetInt32(0);
-                b = data.GetInt64(1);
+                expectedAction = data.GetInt32(0);
+                issueId = data.GetInt64(1);
             }
             connection.Close();
-            return new Tuple<ExpectedAction, long>((ExpectedAction)a, b);
+            return new Tuple<ExpectedAction, long>((ExpectedAction)expectedAction, issueId);
         }
 
-        public void ChangeIssueAndExpectedActionByUserId(ExpectedAction action, long issueId)
+        public void ChangeIssueAndExpectedActionByUserId(ExpectedAction action, long issueId, long userId)
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
             SqliteCommand command = connection.CreateCommand();
             command.CommandText = @"
                 UPDATE Users
-                SET ExpectedAction = $action, ChangedIssueId = $id
-                WHERE TelegramUserId == 842190162;
+                SET ExpectedAction = $action, ChangedIssueId = $issueid
+                WHERE TelegramUserId == $userId;
             ";
             command.Parameters.AddWithValue("$action", action);
-            command.Parameters.AddWithValue("$id", issueId);
+            command.Parameters.AddWithValue("$userId", userId);
+            command.Parameters.AddWithValue("$issueId", issueId);
             var data = command.ExecuteNonQuery();
             connection.Close();
         }
@@ -97,6 +99,32 @@ namespace RedmineTelegram
             return false;
         }
 
+        public void InsertOrUpdateIssue(Issue issue)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand delCommand = connection.CreateCommand();
+            delCommand.CommandText =
+                @"
+                    DELETE FROM Issues
+                    WHERE Id == $issueId;
+                ";
+            delCommand.Parameters.AddWithValue("$issueId", issue.Id);
+            delCommand.ExecuteNonQuery();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+                @"
+                    INSERT INTO Issues (Id, Closed, AssignedTo, Status)
+                        VALUES ($id, $closed, $assignedTo, $status)
+                ";
+            command.Parameters.AddWithValue("$id", issue.Id);
+            command.Parameters.AddWithValue("$closed", issue.IsClosed ? 1 : 0);
+            command.Parameters.AddWithValue("$assignedTo", issue.AssignedTo);
+            command.Parameters.AddWithValue("$status", issue.Status);
+            command.ExecuteNonQuery();
+            connection.Close();
+        }
+
         public bool TryGetUserTelegramIdByUsername(string telegramUsername, out long telegramUserId)
         {
             using var connection = new SqliteConnection(_connectionString);
@@ -132,34 +160,24 @@ namespace RedmineTelegram
             ";
             command.Parameters.AddWithValue("$id", id);
             var data = command.ExecuteReader();
-            int a = 0;
-            int b = 0;
-            int da = 0;
-            int sa = 0;
+            int issueId = 0;
+            int isClosed = 0;
+            int assignedTo = 0;
+            int status = 0;
             data.Read();
             if (data.HasRows)
             {
-                a = data.GetInt32(0);
-                b = data.GetInt32(1);
-                da = data.GetInt32(2);
-                sa = data.GetInt32(3);
-                issue = new Issue(a, da, b > 0, sa);
+                issueId = data.GetInt32(0);
+                isClosed = data.GetInt32(1);
+                assignedTo = data.GetInt32(2);
+                status = data.GetInt32(3);
+                issue = new Issue(issueId, assignedTo, isClosed > 0, status);
+                connection.Close();
                 return true;
             }
-            issue = new Issue(a, da, b > 0, sa);
+            issue = new Issue(issueId, assignedTo, isClosed > 0, status);
             connection.Close();
             return false;
-        }
-
-        private SqliteDataReader ExecuteReaderCommand(string commandText)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = commandText;
-            var data = command.ExecuteReader();
-            connection.Close();
-            return data;
         }
 
         private void ExecuteNonQueryCommand(string commandText)
@@ -172,9 +190,9 @@ namespace RedmineTelegram
             connection.Close();
         }
 
-        private readonly string CreateTableIssuesCommandText = 
+        private readonly string CreateTableIssuesCommandText =
             @"
-                CREATE TABLE Issues
+                CREATE TABLE IF NOT EXISTS Issues
                 (
                     Id INTEGER,
                     Closed INTEGER,
@@ -185,7 +203,7 @@ namespace RedmineTelegram
 
         private readonly string CreateTableUsersCommandText =
             @"
-                CREATE TABLE Users 
+                CREATE TABLE IF NOT EXISTS Users 
                 (
                     TelegramUserId INTEGER,
                     TelegramUsername INTEGER,

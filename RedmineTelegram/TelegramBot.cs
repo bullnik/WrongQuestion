@@ -29,7 +29,7 @@ namespace RedmineTelegram
             {
                 new []
                 {
-                    InlineKeyboardButton.WithCallbackData("Поменять статус", "ChangeStatus " + issue.Id.ToString()),
+                    InlineKeyboardButton.WithCallbackData("Поменять статус", "ViewStatus " + issue.Id.ToString()),
                     InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString())
                 }
             });
@@ -134,6 +134,10 @@ namespace RedmineTelegram
             }
             else if (command == "ChangeStatus")           
             {
+                if (callbackData.Length < 3)
+                {
+                    return;
+                }
                 string status = "";
                 if (callbackData.Length >= 2)
                 { 

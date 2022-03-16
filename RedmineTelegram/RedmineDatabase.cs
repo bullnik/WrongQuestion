@@ -110,14 +110,44 @@ namespace RedmineTelegram
             return true;
         }
 
-        public void ChangeLaborCost(long issueId, int laborCost)
+        //public void ChangeLaborCost(long issueId, int laborCost)
+        //{
+        //    var table = ExecuteScript(@"
+        //    update bitnami_redmine.issues i
+        //    join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
+        //    set i.estimated_hours = " + laborCost +
+        //    " where i.id = " + issueId
+        //    + " and iss.is_closed = 0");
+        //}
+
+        public void ChangeLaborCost(long issueId, int hours, string comment, string tgName)
+        {
+            TryGetRedmineUserIdByTelegram(tgName, out long userId);
+
+            var table = ExecuteScript(@"
+            insert into bitnami_redmine.time_entries (user_id, project_id, hours, activity_id, spent_on , tyear, tmonth, tweek, created_on, updated_on, author_id, issue_id, comments)"
++ $" values({userId}, {GetProjectIdByIssueId(issueId)}, {hours}, 9, now(), year(now()), month(now()), week(now()), now(), now(), {userId}, {issueId}, '{comment}')") ;
+
+        }
+
+        public void AddComment(long issueId, string comment, string tgName)
+        {
+            TryGetRedmineUserIdByTelegram(tgName, out long userId);
+
+            var table = ExecuteScript(@$"
+            insert into bitnami_redmine.journals (journalized_id, journalized_type, user_id, notes, created_on, private_notes)
+values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
+
+        }
+
+        public int GetProjectIdByIssueId(long issueId)
         {
             var table = ExecuteScript(@"
-            update bitnami_redmine.issues i
-            join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
-            set i.estimated_hours = " + laborCost +
-            " where i.id = " + issueId
-            + " and iss.is_closed = 0");
+            select i.project_id
+            from bitnami_redmine.issues i
+            where i.id = " + issueId);
+
+            return (int)table[1, 0];
         }
 
         public bool TryGetTelegramUsernameByRedmineId(int assignedTo, out string username)

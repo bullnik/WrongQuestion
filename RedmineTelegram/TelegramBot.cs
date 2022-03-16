@@ -94,7 +94,7 @@ namespace RedmineTelegram
             {
                 if (int.TryParse(userMessage, out int laborCost))
                 {
-                    _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost);
+                    _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost, "", e.Message.From.Username);
                     await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>✅Успешно изменён</b>✅", parseMode: ParseMode.Html);
                 }
                 else

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Bot.Types.Enums;
 
 namespace RedmineTelegram
 {
@@ -33,9 +34,9 @@ namespace RedmineTelegram
                     InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString())
                 }
             });
-            await _bot.SendTextMessageAsync(telegramUserId, "На вас назначена задача! " + issue.Status + '\n' + 
-                "Описание задачи: " + issue.Description + '\n' + "Ожидаемое время выполнения: " + 
-                issue.EstimatedHours, replyMarkup: editing);
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️На вас назначена задача</b>⚡️" + '\n' + "Статус: " + issue.Status + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
+                + issue.Description + '\n' + "Приоритет: " + issue.Priority + '\n' + "Примерное время выполнения: " + issue.EstimatedHours + " ч."
+                + '\n' + "Назначена с " + issue.CreatedOn, replyMarkup: editing, parseMode: ParseMode.Html);
         }
 
         public async void SendClosedIssueToUser(NormalIssue issue, long telegramUserId)
@@ -47,9 +48,9 @@ namespace RedmineTelegram
                     InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString())
                 }
             });
-            await _bot.SendTextMessageAsync(telegramUserId, "Задача закрыта! " + issue.Status + '\n' +
-                "Описание задачи: " + issue.Description + '\n' + "Пожалуйста, укажите трудозатраты!" +
-                issue.EstimatedHours, replyMarkup: editing);
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Задача закрыта</b>⚡️" + issue.Status + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
+                + issue.Description + '\n' + "Пожалуйста, укажите трудозатраты!" +
+                issue.EstimatedHours, replyMarkup: editing, parseMode: ParseMode.Html);
         }
 
         public void StartReceiving()
@@ -94,11 +95,11 @@ namespace RedmineTelegram
                 if (int.TryParse(userMessage, out int laborCost))
                 {
                     _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost);
-                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "Успешно изменён");
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>✅Успешно изменён</b>✅", parseMode: ParseMode.Html);
                 }
                 else
                 {
-                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "Неверный формат времени.");
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>❌Неверный формат времени</b>❌", parseMode: ParseMode.Html);
                 }
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
                 ShowMenu(userId);
@@ -151,13 +152,13 @@ namespace RedmineTelegram
                 long issueId = long.Parse(callbackData[callbackData.Length-1]);
                 if (_redmineDatabase.ChangeIssueStatus(issueId, statusId))
                 {
-                    await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, 
-                        "Статус задачи изменен.");
+                    await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id,
+                        "<b>✅Статус задачи изменен✅</b>", parseMode: ParseMode.Html);
                 }
                 else
                 {
-                    await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, 
-                        "Произошла ошибка при изменении статуса.");
+                    await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id,
+                        "<b>❌Произошла ошибка при изменении статуса❌</b>", parseMode: ParseMode.Html);
                 }
             }
             else if (command == "ViewStatus")
@@ -177,13 +178,13 @@ namespace RedmineTelegram
                     }
                 });
 
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите статус задачи.", replyMarkup: buttontsStatus);
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите статус задачи📝", replyMarkup: buttontsStatus, parseMode: ParseMode.Html);
                 long issueId = long.Parse(callbackData[1]);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForNewStatusId, issueId, userId);
             }
             else if (command == "ChangeLabor")
             {
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "Введите трудозатраты (в часах).", replyMarkup: cancel);
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите трудозатраты (в часах)📝", replyMarkup: cancel, parseMode: ParseMode.Html);
                 long issueId = long.Parse(callbackData[1]);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForLaborCosts, issueId, userId);
             }
@@ -205,16 +206,20 @@ namespace RedmineTelegram
                     InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString())
                 }
             });
-            await _bot.SendTextMessageAsync(chatId, "Статус задачи: " + issue.Status + '\n' + "Описание задачи: "
-                + issue.Description + '\n' + "Примерное время выполнения: " + issue.EstimatedHours, replyMarkup: editing);
+            await _bot.SendTextMessageAsync(chatId, "<b>⚡️Информация о задаче⚡️</b>" + '\n' + "Статус: " + issue.Status + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
+                + issue.Description + '\n' + "Приоритет: " + issue.Priority + '\n' + "Примерное время выполнения: " + issue.EstimatedHours + " ч."
+                + '\n' + "Назначена с " + issue.CreatedOn, replyMarkup: editing, parseMode: ParseMode.Html);
+
         }
 
-        private void WatchIssues(long chatId, List<NormalIssue> tasks)
+        private async void WatchIssues(long chatId, List<NormalIssue> tasks)
         {
             foreach (NormalIssue task in tasks)
             {
                 SendIssue(chatId, task);
             }
+            if (tasks.Count == 0)
+                await _bot.SendTextMessageAsync(chatId, "<b>⚡️Задач нет⚡️</b>", parseMode: ParseMode.Html);
         }
 
         private async void ShowMenu(long chatId)

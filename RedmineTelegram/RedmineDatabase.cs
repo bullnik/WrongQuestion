@@ -90,12 +90,22 @@ namespace RedmineTelegram
 
         public bool ChangeIssueStatus(long issueId, int statusId) //проверка на то что статус есть, да и на айди задачи наверн тоже
         {
+            var check = ExecuteScript(@"
+            select i.id from bitnami_redmine.issues i 
+            join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
+            where i.id = " + issueId
+            + " and iss.is_closed = 0");
 
+            if (check.GetLength(0) == 1)
+                return false;
 
             var table = ExecuteScript(@"
             update bitnami_redmine.issues i
+            join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
             set i.status_id = " + statusId +
-            " where i.id = " + issueId);
+            " where i.id = " + issueId
+            + " and iss.is_closed = 0");
+
 
             return true;
         }
@@ -104,15 +114,17 @@ namespace RedmineTelegram
         {
             var table = ExecuteScript(@"
             update bitnami_redmine.issues i
+            join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
             set i.estimated_hours = " + laborCost +
-            " where i.id = " + issueId);
+            " where i.id = " + issueId
+            + " and iss.is_closed = 0");
         }
 
         public bool TryGetTelegramUsernameByRedmineId(int assignedTo, out string username)
         {
             var table = ExecuteScript(@"
             select cv.value 
-            from bitnami_redmine.custom_values cv 
+            from bitnami_redmine.custom_values cv
             where cv.customized_id = " + assignedTo);
 
             if (table.GetLength(0) == 1)

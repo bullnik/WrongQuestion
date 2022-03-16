@@ -68,6 +68,10 @@ namespace RedmineTelegram
         private async void OnMessageHandler(object sender, MessageEventArgs e)
         {
             string userMessage = e.Message.Text;
+            if (userMessage is null)
+            {
+                return;
+            }
             if (userMessage.Length > 400)
             { 
                 userMessage = e.Message.Text[..400];

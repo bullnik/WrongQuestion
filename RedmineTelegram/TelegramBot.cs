@@ -91,14 +91,19 @@ namespace RedmineTelegram
             }
             else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForLaborCosts)
             {
-                if (int.TryParse(userMessage, out int laborCost))
+                string[] parts = userMessage.Split(' ');
+                string comment = userMessage[parts[0].Length..];
+                if (int.TryParse(parts[0], out int laborCost))
                 {
-                    _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost, "", e.Message.From.Username);
-                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>✅Успешно изменён</b>✅", parseMode: ParseMode.Html);
+                    _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost, comment, 
+                        e.Message.From.Username);
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>✅Успешно изменён</b>✅", 
+                        parseMode: ParseMode.Html);
                 }
                 else
                 {
-                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>❌Неверный формат времени</b>❌", parseMode: ParseMode.Html);
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>❌Неверный формат времени</b>❌", 
+                        parseMode: ParseMode.Html);
                 }
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
                 ShowMenu(userId);
@@ -106,7 +111,8 @@ namespace RedmineTelegram
             else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForComment)
             {
                 _redmineDatabase.AddComment(changedIssueAndExpectedAction.Item2, userMessage, e.Message.From.Username);
-                await _bot.SendTextMessageAsync(e.Message.Chat.Id, "✅<b>Комментарий добавлен</b>✅", parseMode: ParseMode.Html);
+                await _bot.SendTextMessageAsync(e.Message.Chat.Id, "✅<b>Комментарий добавлен</b>✅", 
+                    parseMode: ParseMode.Html);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
             }
         }
@@ -186,7 +192,8 @@ namespace RedmineTelegram
                 var listButtons = new List<InlineKeyboardButton>();
                 foreach (var status in _redmineDatabase.GetStatusesList())
                 {
-                    listButtons.Add(InlineKeyboardButton.WithCallbackData(status, "ChangeStatus " + status + " " + callbackData[1]));
+                    listButtons.Add(InlineKeyboardButton.WithCallbackData(status, "ChangeStatus " 
+                        + status + " " + callbackData[1]));
                 }
 
                 var buttontsStatus = new InlineKeyboardMarkup(new[]
@@ -198,13 +205,15 @@ namespace RedmineTelegram
                     }
                 });
 
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите статус задачи📝", replyMarkup: buttontsStatus, parseMode: ParseMode.Html);
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите статус задачи📝", 
+                    replyMarkup: buttontsStatus, parseMode: ParseMode.Html);
                 long issueId = long.Parse(callbackData[1]);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForNewStatusId, issueId, userId);
             }
             else if (command == "ChangeLabor")
             {
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите трудозатраты (в часах)📝", replyMarkup: cancel, parseMode: ParseMode.Html);
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите трудозатраты (в часах)📝" 
+                    + '\n' + "И на что они потрачены, через пробел", replyMarkup: cancel, parseMode: ParseMode.Html);
                 long issueId = long.Parse(callbackData[1]);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForLaborCosts, issueId, userId);
             }

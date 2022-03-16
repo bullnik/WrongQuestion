@@ -68,6 +68,10 @@ namespace RedmineTelegram
         private async void OnMessageHandler(object sender, MessageEventArgs e)
         {
             string userMessage = e.Message.Text;
+            if (userMessage.Length > 400)
+            { 
+                userMessage = e.Message.Text[..400];
+            }
             long userId = e.Message.Chat.Id;
             bool isUserLoginInRedmine = _redmineDatabase.TryGetRedmineUserIdByTelegram(
                 e.Message.From.Username, out _);
@@ -213,7 +217,7 @@ namespace RedmineTelegram
             else if (command == "ChangeLabor")
             {
                 await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите трудозатраты (в часах)📝" 
-                    + '\n' + "И на что они потрачены, через пробел", replyMarkup: cancel, parseMode: ParseMode.Html);
+                    + '\n' + "И на что они потрачены, через пробел" + '\n' + "Пример: 40 работал", replyMarkup: cancel, parseMode: ParseMode.Html);
                 long issueId = long.Parse(callbackData[1]);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForLaborCosts, issueId, userId);
             }

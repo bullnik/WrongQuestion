@@ -48,9 +48,8 @@ namespace RedmineTelegram
                     InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString())
                 }
             });
-            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Задача закрыта</b>⚡️" + issue.Status + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
-                + issue.Description + '\n' + "Пожалуйста, укажите трудозатраты!" +
-                issue.EstimatedHours, replyMarkup: editing, parseMode: ParseMode.Html);
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Задача закрыта</b>⚡️" + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
+                + issue.Description + '\n' + "Пожалуйста, укажите трудозатраты (если не указаны раньше)", replyMarkup: editing, parseMode: ParseMode.Html);
         }
 
         public void StartReceiving()
@@ -104,6 +103,12 @@ namespace RedmineTelegram
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
                 ShowMenu(userId);
             }
+            else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForComment)
+            {
+                _redmineDatabase.AddComment(changedIssueAndExpectedAction.Item2, userMessage, e.Message.From.Username);
+                await _bot.SendTextMessageAsync(e.Message.Chat.Id, "✅<b>Комментарий добавлен</b>✅", parseMode: ParseMode.Html);
+                _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
+            }
         }
 
         private async void OnButtonClick(object sender, CallbackQueryEventArgs e)
@@ -133,6 +138,21 @@ namespace RedmineTelegram
                 List<NormalIssue> tasks = _redmineDatabase.GetUserIssues(redmineUserId);
                 WatchIssues(e.CallbackQuery.Message.Chat.Id, tasks);
             }
+            else if (command == "AddComment")
+            {
+                var buttontsStatus = new InlineKeyboardMarkup(new[]
+                {
+                    new []
+                    {
+                        InlineKeyboardButton.WithCallbackData("Отменить операцию и вернуться к задачам", "Cancel")
+                    }
+                });
+
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, 
+                    "📝Введите комментарий📝", replyMarkup: buttontsStatus, parseMode: ParseMode.Html);
+                _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForComment, 
+                    long.Parse(callbackData[1]), userId);
+            }
             else if (command == "ChangeStatus")           
             {
                 if (callbackData.Length < 3)
@@ -146,10 +166,10 @@ namespace RedmineTelegram
                     {
                         status += callbackData[i] + " ";
                     }
-                    status = status.Substring(0, status.Length-1);
+                    status = status[0..^1];
                 }
                 int statusId = _redmineDatabase.GetStatusIdByName(status);
-                long issueId = long.Parse(callbackData[callbackData.Length-1]);
+                long issueId = long.Parse(callbackData[^1]);
                 if (_redmineDatabase.ChangeIssueStatus(issueId, statusId))
                 {
                     await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id,
@@ -203,7 +223,8 @@ namespace RedmineTelegram
                 new []
                 {
                     InlineKeyboardButton.WithCallbackData("Поменять статус", "ViewStatus " + issue.Id.ToString()),
-                    InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString())
+                    InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString()),
+                    InlineKeyboardButton.WithCallbackData("Добавить комментарий", "AddComment " + issue.Id.ToString())
                 }
             });
             await _bot.SendTextMessageAsync(chatId, "<b>⚡️Информация о задаче⚡️</b>" + '\n' + "Статус: " + issue.Status + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "

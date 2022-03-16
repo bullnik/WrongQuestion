@@ -21,9 +21,9 @@ namespace RedmineTelegram
             _telegramBot = telegramBot;
         }
 
-        public  void StartChecking()
+        public async void StartChecking()
         {
-             Check();
+            await Task.Run(() => Check());
         }
 
         private void Check()
@@ -44,8 +44,11 @@ namespace RedmineTelegram
                     }
                     else
                     {
-                        _internalDatabase.InsertOrUpdateIssue(issue);
-                        SendIssueToUserIfUserFound(issue);
+                        if (!issue.IsClosed)
+                        {
+                            _internalDatabase.InsertOrUpdateIssue(issue);
+                            SendIssueToUserIfUserFound(issue);
+                        }
                     }
                 }
 

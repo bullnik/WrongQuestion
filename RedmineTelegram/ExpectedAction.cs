@@ -10,6 +10,7 @@ namespace RedmineTelegram
     {
         Nothing = 0,
         WaitForNewStatusId = 1,
-        WaitForLaborCosts = 2
+        WaitForLaborCosts = 2,
+        WaitForComment = 3
     }
 }

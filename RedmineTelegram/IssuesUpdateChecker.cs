@@ -45,7 +45,7 @@ namespace RedmineTelegram
                         if (watcherRedmineId == issue.AssignedTo 
                             || watcherRedmineId == issue.CreatorId)
                         {
-                            return;
+                            continue;
                         }
                         SendIssueToUser(watcherRedmineId, issue);
                     }
@@ -57,13 +57,14 @@ namespace RedmineTelegram
                     List<int> watchersRedmineIds = _redmineDatabase.GetWatchersIdList(issue.Id);
 
                     SendJournalToUser(issue.CreatorId, journalItem, issue);
-                    SendJournalToUser(issue.AssignedTo, journalItem, issue);
+                    if (issue.CreatorId != issue.AssignedTo)
+                        SendJournalToUser(issue.AssignedTo, journalItem, issue);
                     foreach (int watcherRedmineId in watchersRedmineIds)
                     {
                         if (watcherRedmineId == issue.AssignedTo 
                             || watcherRedmineId == issue.CreatorId)
                         {
-                            return;
+                            continue;
                         }
                         SendJournalToUser(watcherRedmineId, journalItem, issue);
                     }

@@ -35,7 +35,7 @@ namespace RedmineTelegram
 
         public List<NormalIssue> LoadLastCreatedIssues(DateTime date)
         {
-            var strDate = date.ToString("yyyy-MM-dd");
+            var strDate = date.ToString("yyyy-MM-dd HH:mm:ss");
 
             var table = ExecuteScript(@$"
             select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id
@@ -79,7 +79,7 @@ namespace RedmineTelegram
 
         public List<Issue> LoadLastEditedIssues(DateTime date)
         {
-            var strDate = date.ToString("yyyy-MM-dd");
+            var strDate = date.ToString("yyyy-MM-dd HH:mm:ss");
 
             var table = ExecuteScript(@$"
             select i.id, i.assigned_to_id, i.created_on 
@@ -114,8 +114,8 @@ namespace RedmineTelegram
             {
                 var issueId = (int)table[i, 0];
                 var comment = table[i, 2].ToString();
-                var IsComment = comment != null;
-                var isStatusChanged = comment == null;
+                var IsComment = comment != "";
+                var isStatusChanged = comment == "";
                 a.Add(new JournalItem(issueId, (int)table[i, 1], comment, IsComment, isStatusChanged, GetStatusNameByIssueId(issueId)));
             }
             return a;
@@ -123,7 +123,7 @@ namespace RedmineTelegram
 
         public List<JournalItem> LoadLastJournalsLine(DateTime date)
         {
-            var strDate = date.ToString("yyyy-MM-dd");
+            var strDate = date.ToString("yyyy-MM-dd HH:mm:ss");
 
             var table = ExecuteScript(@$"
             select j.journalized_id, j.user_id, j.notes 
@@ -137,8 +137,8 @@ namespace RedmineTelegram
             {
                 var issueId = (int)table[i, 0];
                 var comment = table[i, 2].ToString();
-                var isComment = comment != null;
-                var isStatusChanged = comment == null;
+                var isComment = comment != "";
+                var isStatusChanged = comment == "";
                 a.Add(new JournalItem(issueId, (int)table[i, 1], comment, isComment, isStatusChanged, GetStatusNameByIssueId(issueId)));
             }
             return a;

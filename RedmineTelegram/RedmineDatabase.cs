@@ -38,11 +38,6 @@ namespace RedmineTelegram
             throw new Exception("Бык не реализовал");
         }
 
-        public long GetCreatorId(long issueId)
-        {
-            throw new Exception("Бык не реализовал");
-        }
-
         // кол-во на вход, на выход issue, сортировка по времени (updated_on), на выход count последних задач 
         public List<Issue> LoadLastEditedIssues(int count)
         {

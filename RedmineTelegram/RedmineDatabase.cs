@@ -55,28 +55,28 @@ namespace RedmineTelegram
             return a;
         }
 
-        //public List<Issue> LoadLastEditedIssues(DateTime date)
-        //{
-        //    var strDate = date.
+        public List<Issue> LoadLastEditedIssues(DateTime date)
+        {
+            var strDate = date.ToString("yyyy-MM-dd");
 
-        //    var table = ExecuteScript(@"
-        //    select i.id, i.assigned_to_id, i.closed_on, i.status_id
-        //    from bitnami_redmine.issues i 
-        //    order by i.updated_on desc
-        //    where " + count);
+            var table = ExecuteScript(@$"
+            select i.id, i.assigned_to_id, i.created_on 
+            from bitnami_redmine.issues i 
+            where i.updated_on >= '{strDate}'
+            order by i.updated_on desc");
 
-            
 
-        //    List<Issue> a = new();
 
-        //    for (int i = 1; i < table.GetLength(0); i++)
-        //    {
-        //        var closedOn = table[i, 2].ToString().Length;
-        //        var status = closedOn > 2 ? true : false;
-        //        a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
-        //    }
-        //    return a;
-        //}
+            List<Issue> a = new();
+
+            for (int i = 1; i < table.GetLength(0); i++)
+            {
+                var closedOn = table[i, 2].ToString().Length;
+                var status = closedOn > 2 ? true : false;
+                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
+            }
+            return a;
+        }
 
         public List<JournalItem> LoadLastJournalsLine(int count)
         {
@@ -85,6 +85,27 @@ namespace RedmineTelegram
             from bitnami_redmine.journals j 
             order by j.created_on desc
             limit " + count);
+
+            List<JournalItem> a = new();
+
+            for (int i = 1; i < table.GetLength(0); i++)
+            {
+                var comment = table[i, 2].ToString();
+                var IsComment = comment != null;
+                a.Add(new JournalItem((int)table[i, 0], (int)table[i, 1], comment, IsComment));
+            }
+            return a;
+        }
+
+        public List<JournalItem> LoadLastJournalsLine(DateTime date)
+        {
+            var strDate = date.ToString("yyyy-MM-dd");
+
+            var table = ExecuteScript(@$"
+            select j.journalized_id, j.user_id, j.notes 
+            from bitnami_redmine.journals j 
+            where j.created_on >= '{strDate}'
+            order by j.created_on desc");
 
             List<JournalItem> a = new();
 

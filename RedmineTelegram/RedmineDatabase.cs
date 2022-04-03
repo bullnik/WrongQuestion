@@ -33,25 +33,26 @@ namespace RedmineTelegram
             return a;
         }
 
-        public List<Issue> LoadLastCreatedIssues(DateTime date)
+        public List<NormalIssue> LoadLastCreatedIssues(DateTime date)
         {
             var strDate = date.ToString("yyyy-MM-dd");
 
             var table = ExecuteScript(@$"
-            select i.id, i.assigned_to_id, i.created_on 
-            from bitnami_redmine.issues i 
-            where i.created_on >= '{strDate}'
-            order by i.updated_on desc");
+            select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id
+            from bitnami_redmine.issues i
+            join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
+            join bitnami_redmine.enumerations e on i.priority_id = e.id
+            where i.created_on >= '{strDate}'");
 
 
-
-            List<Issue> a = new();
+            List<NormalIssue> a = new();
 
             for (int i = 1; i < table.GetLength(0); i++)
             {
-                var closedOn = table[i, 2].ToString().Length;
-                var status = closedOn > 2 ? true : false;
-                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
+                int estHours;
+                Int32.TryParse(table[i, 6].ToString(), out estHours);
+                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), table[i, 3].ToString(), table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString(), (int)table[i, 8], (int)table[i, 9]));
+
             }
             return a;
         }

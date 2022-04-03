@@ -14,14 +14,13 @@ namespace RedmineTelegram
             IssueId = issueId;
             UserId = userId;
             Comment = comment;
-            IsComment = isComment;
-
+            IsComment = isComment; 
             IsIssueStatusChange = IsIssueStatusChange;
             CurrentIssueStatus = currentIssueStatus;
         }
 
         public bool IsIssueStatusChange { get; set; }
-        public string CurrentIssueStatus { get; set; }
+        public string CurrentIssueStatus { get; }
 
         public int IssueId { get; set; }
         public string Comment { get; set; }

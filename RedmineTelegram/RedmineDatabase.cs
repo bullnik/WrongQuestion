@@ -13,7 +13,7 @@ namespace RedmineTelegram
         public List<NormalIssue> GetUserIssues(long userId)
         {
             var table = ExecuteScript(@"
-            select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on
+            select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id
             from bitnami_redmine.issues i
             join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
             join bitnami_redmine.enumerations e on i.priority_id = e.id
@@ -27,15 +27,33 @@ namespace RedmineTelegram
             {
                 int estHours;
                 Int32.TryParse(table[i, 6].ToString(), out estHours);
-                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), table[i, 3].ToString(), table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString()));
+                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), table[i, 3].ToString(), table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString(), (int)table[i, 8], (int)table[i, 9]));
 
             }
             return a;
         }
 
-        public List<NormalIssue> LoadLastCreatedIssues(DateTime from)
+        public List<Issue> LoadLastCreatedIssues(DateTime date)
         {
-            throw new Exception("Бык не реализовал");
+            var strDate = date.ToString("yyyy-MM-dd");
+
+            var table = ExecuteScript(@$"
+            select i.id, i.assigned_to_id, i.created_on 
+            from bitnami_redmine.issues i 
+            where i.created_on >= '{strDate}'
+            order by i.updated_on desc");
+
+
+
+            List<Issue> a = new();
+
+            for (int i = 1; i < table.GetLength(0); i++)
+            {
+                var closedOn = table[i, 2].ToString().Length;
+                var status = closedOn > 2 ? true : false;
+                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
+            }
+            return a;
         }
 
         // кол-во на вход, на выход issue, сортировка по времени (updated_on), на выход count последних задач 
@@ -93,9 +111,11 @@ namespace RedmineTelegram
 
             for (int i = 1; i < table.GetLength(0); i++)
             {
+                var issueId = (int)table[i, 0];
                 var comment = table[i, 2].ToString();
                 var IsComment = comment != null;
-                a.Add(new JournalItem((int)table[i, 0], (int)table[i, 1], comment, IsComment));
+                var isStatusChanged = comment == null;
+                a.Add(new JournalItem(issueId, (int)table[i, 1], comment, IsComment, isStatusChanged, GetStatusNameByIssueId(issueId)));
             }
             return a;
         }
@@ -114,17 +134,31 @@ namespace RedmineTelegram
 
             for (int i = 1; i < table.GetLength(0); i++)
             {
+                var issueId = (int)table[i, 0];
                 var comment = table[i, 2].ToString();
-                var IsComment = comment != null;
-                a.Add(new JournalItem((int)table[i, 0], (int)table[i, 1], comment, IsComment));
+                var isComment = comment != null;
+                var isStatusChanged = comment == null;
+                a.Add(new JournalItem(issueId, (int)table[i, 1], comment, isComment, isStatusChanged, GetStatusNameByIssueId(issueId)));
             }
             return a;
+        }
+
+        public string GetStatusNameByIssueId(int issueId) 
+        {
+            var table = ExecuteScript(@$"
+            select iss.name
+            from bitnami_redmine.issues i
+            join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
+            where i.id = {issueId}");
+
+            
+            return table[1, 0].ToString();
         }
 
         public NormalIssue GetIssueByIssueId(int issueId)
         {
             var table = ExecuteScript(@"
-            select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on
+            select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id
             from bitnami_redmine.issues i
             join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
             join bitnami_redmine.enumerations e on i.priority_id = e.id 
@@ -132,7 +166,7 @@ namespace RedmineTelegram
 
             int estHours;
             Int32.TryParse(table[1, 6].ToString(), out estHours);
-            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString());
+            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9]);
 
         }
 
@@ -296,14 +330,14 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
         public NormalIssue GetNormalIssue(int issueId) //
         {
             var table = ExecuteScript(@"
-            select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on
+            select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id
             from bitnami_redmine.issues i
             join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
             join bitnami_redmine.enumerations e on i.priority_id = e.id
             where i.id = " + issueId);
             int estHours;
             Int32.TryParse(table[1, 6].ToString(), out estHours);
-            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString());
+            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9]);
         }
 
         private object[,] ExecuteScript(string script)

@@ -6,8 +6,8 @@ namespace RedmineTelegram
     {
         public static MySqlConnection GetDBConnection()
         {
-            string host = "0.tcp.ngrok.io";
-            int port = 16516;
+            string host = "localhost";
+            int port = 3307;
             string database = "";
             string username = "admindb";
             string password = "password123";

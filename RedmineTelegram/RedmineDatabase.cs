@@ -33,6 +33,8 @@ namespace RedmineTelegram
             return a;
         }
 
+
+
         // кол-во на вход, на выход issue, сортировка по времени (updated_on), на выход count последних задач 
         public List<Issue> LoadLastEditedIssues(int count)
         {
@@ -51,6 +53,84 @@ namespace RedmineTelegram
                 a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
             }
             return a;
+        }
+
+        public List<Issue> LoadLastEditedIssues(DateTime date)
+        {
+            var strDate = date.ToString("yyyy-MM-dd");
+
+            var table = ExecuteScript(@$"
+            select i.id, i.assigned_to_id, i.created_on 
+            from bitnami_redmine.issues i 
+            where i.updated_on >= '{strDate}'
+            order by i.updated_on desc");
+
+
+
+            List<Issue> a = new();
+
+            for (int i = 1; i < table.GetLength(0); i++)
+            {
+                var closedOn = table[i, 2].ToString().Length;
+                var status = closedOn > 2 ? true : false;
+                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
+            }
+            return a;
+        }
+
+        public List<JournalItem> LoadLastJournalsLine(int count)
+        {
+            var table = ExecuteScript(@"
+            select j.journalized_id, j.user_id, j.notes 
+            from bitnami_redmine.journals j 
+            order by j.created_on desc
+            limit " + count);
+
+            List<JournalItem> a = new();
+
+            for (int i = 1; i < table.GetLength(0); i++)
+            {
+                var comment = table[i, 2].ToString();
+                var IsComment = comment != null;
+                a.Add(new JournalItem((int)table[i, 0], (int)table[i, 1], comment, IsComment));
+            }
+            return a;
+        }
+
+        public List<JournalItem> LoadLastJournalsLine(DateTime date)
+        {
+            var strDate = date.ToString("yyyy-MM-dd");
+
+            var table = ExecuteScript(@$"
+            select j.journalized_id, j.user_id, j.notes 
+            from bitnami_redmine.journals j 
+            where j.created_on >= '{strDate}'
+            order by j.created_on desc");
+
+            List<JournalItem> a = new();
+
+            for (int i = 1; i < table.GetLength(0); i++)
+            {
+                var comment = table[i, 2].ToString();
+                var IsComment = comment != null;
+                a.Add(new JournalItem((int)table[i, 0], (int)table[i, 1], comment, IsComment));
+            }
+            return a;
+        }
+
+        public NormalIssue GetIssueByIssueId(int issueId)
+        {
+            var table = ExecuteScript(@"
+            select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on
+            from bitnami_redmine.issues i
+            join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
+            join bitnami_redmine.enumerations e on i.priority_id = e.id 
+            where i.id  =  " + issueId);
+
+            int estHours;
+            Int32.TryParse(table[1, 6].ToString(), out estHours);
+            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString());
+
         }
 
         public List<string> GetStatusesList() //возвращает список всех статусов
@@ -82,6 +162,18 @@ namespace RedmineTelegram
             select cv.customized_id 
             from bitnami_redmine.custom_values cv 
             where cv.value = '" + tgId + "\'");
+
+            if (table.GetLength(0) == 1)
+                return 0;
+            return (int)table[1, 0];
+        }
+
+        public int GetLabourCostByIssueId(long issueId)
+        {
+            var table = ExecuteScript(@"
+            select sum(t.hours)
+            from bitnami_redmine.time_entries t
+            where t.issue_id = = " + issueId);
 
             if (table.GetLength(0) == 1)
                 return 0;
@@ -165,6 +257,20 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             username = table[1, 0].ToString();
 
             return true;
+        }
+
+        public List<int> GetWatchersIdList(long issueId)
+        {
+            var list = new List<int>();
+            var table = ExecuteScript(@$"
+            select w.user_id 
+            from bitnami_redmine.watchers w 
+            where w.watchable_type = 'Issue' and watchable_id = {issueId} 
+           ");
+
+            for (int i = 1; i < table.GetLength(0); i++)
+                list.Add((int)table[i, 0]);
+            return list;
         }
 
         public bool TryGetRedmineUserIdByTelegram(string telegramUsername, out long redmineUserId)

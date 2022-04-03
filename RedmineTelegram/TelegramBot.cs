@@ -35,7 +35,7 @@ namespace RedmineTelegram
                 }
             });
             await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️На вас назначена задача</b>⚡️" + '\n' + "Статус: " + issue.Status + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
-                + issue.Description + '\n' + "Приоритет: " + issue.Priority + '\n' + "Примерное время выполнения: " + issue.EstimatedHours + " ч."
+                + issue.Description + '\n' + "Приоритет: " + issue.Priority + '\n' + "Трудозатраты: " + issue.EstimatedHours + " ч."
                 + '\n' + "Назначена с " + issue.CreatedOn, replyMarkup: editing, parseMode: ParseMode.Html);
         }
 
@@ -68,6 +68,14 @@ namespace RedmineTelegram
         private async void OnMessageHandler(object sender, MessageEventArgs e)
         {
             string userMessage = e.Message.Text;
+            if (userMessage is null)
+            {
+                return;
+            }
+            if (userMessage.Length > 400)
+            {
+                userMessage = e.Message.Text[..400];
+            }
             long userId = e.Message.Chat.Id;
             bool isUserLoginInRedmine = _redmineDatabase.TryGetRedmineUserIdByTelegram(
                 e.Message.From.Username, out _);
@@ -95,14 +103,14 @@ namespace RedmineTelegram
                 string comment = userMessage[parts[0].Length..];
                 if (int.TryParse(parts[0], out int laborCost))
                 {
-                    _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost, comment, 
+                    _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost, comment,
                         e.Message.From.Username);
-                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>✅Успешно изменён</b>✅", 
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>✅Успешно изменён</b>✅",
                         parseMode: ParseMode.Html);
                 }
                 else
                 {
-                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>❌Неверный формат времени</b>❌", 
+                    await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>❌Неверный формат времени</b>❌",
                         parseMode: ParseMode.Html);
                 }
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
@@ -111,7 +119,7 @@ namespace RedmineTelegram
             else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForComment)
             {
                 _redmineDatabase.AddComment(changedIssueAndExpectedAction.Item2, userMessage, e.Message.From.Username);
-                await _bot.SendTextMessageAsync(e.Message.Chat.Id, "✅<b>Комментарий добавлен</b>✅", 
+                await _bot.SendTextMessageAsync(e.Message.Chat.Id, "✅<b>Комментарий добавлен</b>✅",
                     parseMode: ParseMode.Html);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
             }
@@ -154,12 +162,12 @@ namespace RedmineTelegram
                     }
                 });
 
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, 
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id,
                     "📝Введите комментарий📝", replyMarkup: buttontsStatus, parseMode: ParseMode.Html);
-                _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForComment, 
+                _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForComment,
                     long.Parse(callbackData[1]), userId);
             }
-            else if (command == "ChangeStatus")           
+            else if (command == "ChangeStatus")
             {
                 if (callbackData.Length < 3)
                 {
@@ -167,8 +175,8 @@ namespace RedmineTelegram
                 }
                 string status = "";
                 if (callbackData.Length >= 2)
-                { 
-                    for (int i=1; i < callbackData.Length-1; i++)
+                {
+                    for (int i = 1; i < callbackData.Length - 1; i++)
                     {
                         status += callbackData[i] + " ";
                     }
@@ -189,31 +197,47 @@ namespace RedmineTelegram
             }
             else if (command == "ViewStatus")
             {
-                var listButtons = new List<InlineKeyboardButton>();
+                var firstListButtuns = new List<InlineKeyboardButton>();
+                var secondRowButtuns = new List<InlineKeyboardButton>();
+                var chet = 1;
                 foreach (var status in _redmineDatabase.GetStatusesList())
                 {
-                    listButtons.Add(InlineKeyboardButton.WithCallbackData(status, "ChangeStatus " 
-                        + status + " " + callbackData[1]));
+                    if (chet % 2 == 0)
+                    {
+                        firstListButtuns.Add(InlineKeyboardButton.WithCallbackData(status, "ChangeStatus "
+                            + status + " " + callbackData[1]));
+                        chet++;
+                    }
+                    else
+                    {
+                        secondRowButtuns.Add(InlineKeyboardButton.WithCallbackData(status, "ChangeStatus "
+                            + status + " " + callbackData[1]));
+                        chet++;
+                    }
                 }
+
+
 
                 var buttontsStatus = new InlineKeyboardMarkup(new[]
                 {
-                    listButtons.ToArray(),
+                    firstListButtuns.ToArray(),
+                    secondRowButtuns.ToArray(),
                     new []
                     {
                         InlineKeyboardButton.WithCallbackData("Отменить операцию и вернуться к задачам", "Cancel")
                     }
+
                 });
 
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите статус задачи📝", 
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите статус задачи📝",
                     replyMarkup: buttontsStatus, parseMode: ParseMode.Html);
                 long issueId = long.Parse(callbackData[1]);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForNewStatusId, issueId, userId);
             }
             else if (command == "ChangeLabor")
             {
-                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите трудозатраты (в часах)📝" 
-                    + '\n' + "И на что они потрачены, через пробел", replyMarkup: cancel, parseMode: ParseMode.Html);
+                await _bot.SendTextMessageAsync(e.CallbackQuery.Message.Chat.Id, "📝Введите трудозатраты (в часах)📝"
+                    + '\n' + "И на что они потрачены, через пробел" + '\n' + "Пример: 40 работал", replyMarkup: cancel, parseMode: ParseMode.Html);
                 long issueId = long.Parse(callbackData[1]);
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.WaitForLaborCosts, issueId, userId);
             }
@@ -232,12 +256,18 @@ namespace RedmineTelegram
                 new []
                 {
                     InlineKeyboardButton.WithCallbackData("Поменять статус", "ViewStatus " + issue.Id.ToString()),
+                },
+                new []
+                {
                     InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString()),
+                },
+                new []
+                {
                     InlineKeyboardButton.WithCallbackData("Добавить комментарий", "AddComment " + issue.Id.ToString())
                 }
             });
             await _bot.SendTextMessageAsync(chatId, "<b>⚡️Информация о задаче⚡️</b>" + '\n' + "Статус: " + issue.Status + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
-                + issue.Description + '\n' + "Приоритет: " + issue.Priority + '\n' + "Примерное время выполнения: " + issue.EstimatedHours + " ч."
+                + issue.Description + '\n' + "Приоритет: " + issue.Priority + '\n' + "Трудозатраты: " + issue.EstimatedHours + " ч."
                 + '\n' + "Назначена с " + issue.CreatedOn, replyMarkup: editing, parseMode: ParseMode.Html);
 
         }

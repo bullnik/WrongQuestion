@@ -8,13 +8,20 @@ namespace RedmineTelegram
 {
     public class JournalItem
     {
-        public JournalItem(int issueId, int userId, string comment, bool isComment)
+        public JournalItem(int issueId, int userId, string comment, bool isComment, 
+            bool isIssueStatusChange, string currentIssueStatus)
         {
             IssueId = issueId;
             UserId = userId;
             Comment = comment;
             IsComment = isComment;
+
+            IsIssueStatusChange = IsIssueStatusChange;
+            CurrentIssueStatus = currentIssueStatus;
         }
+
+        public bool IsIssueStatusChange { get; set; }
+        public string CurrentIssueStatus { get; set; }
 
         public int IssueId { get; set; }
         public string Comment { get; set; }

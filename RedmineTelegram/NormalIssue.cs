@@ -4,6 +4,8 @@ namespace RedmineTelegram
     public class NormalIssue
     {
         public int Id { get; set; }
+        public long AssignedTo { get; set; }
+        public long CreatorId { get; set; }
         public string Subject { get; set; }
         public string Description { get; set; }
         public string Status { get; set; }
@@ -12,8 +14,11 @@ namespace RedmineTelegram
         public int EstimatedHours { get; set; }
         public string ClosedOn { get; set; }
 
-        public NormalIssue(int id, string subject, string description, string status, string priority, string createdOn, int estimatedHours, string closedOn)
+        public NormalIssue(int id, long assignedTo, long creatorId, string subject, string description, string status, string priority, string createdOn, int estimatedHours, string closedOn)
         {
+            AssignedTo = assignedTo;
+            CreatorId = creatorId;
+
             Id = id;
             if (subject.Length > 200)
             {

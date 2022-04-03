@@ -28,49 +28,112 @@ namespace RedmineTelegram
 
         private void Check()
         {
+            DateTime lastIssuesUpdateCheckTime = DateTime.Now;
+
             while (true)
             {
-                List<Issue> lastEditedIssues = _redmineDatabase.LoadLastEditedIssues(100);
+                List<JournalItem> lastEditedJournals = _redmineDatabase.LoadLastJournalsLine(lastIssuesUpdateCheckTime);
+                List<NormalIssue> lastCreatedIssues = _redmineDatabase.LoadLastCreatedIssues(lastIssuesUpdateCheckTime);
 
-                foreach (Issue issue in lastEditedIssues)
+                foreach (NormalIssue issue in lastCreatedIssues)
                 {
-                    if (_internalDatabase.TryGetIssueById(issue.Id, out Issue savedIssue)) 
+                    List<int> watchersRedmineIds = _redmineDatabase.GetWatchersIdList(issue.Id);
+
+                    SendIssueToUser(issue.AssignedTo, issue);
+                    foreach (int watcherRedmineId in watchersRedmineIds)
                     {
-                        if (issue.IsClosed && !savedIssue.IsClosed)
+                        if (watcherRedmineId == issue.AssignedTo 
+                            || watcherRedmineId == issue.CreatorId)
                         {
-                            _internalDatabase.InsertOrUpdateIssue(issue);
-                            SendIssueToUserIfUserFound(issue);
+                            return;
                         }
-                    }
-                    else
-                    {
-                        if (!issue.IsClosed)
-                        {
-                            _internalDatabase.InsertOrUpdateIssue(issue);
-                            SendIssueToUserIfUserFound(issue);
-                        }
+                        SendIssueToUser(watcherRedmineId, issue);
                     }
                 }
 
+                foreach (JournalItem journalItem in lastEditedJournals)
+                {
+                    NormalIssue issue = _redmineDatabase.GetIssueByIssueId(journalItem.IssueId);
+                    List<int> watchersRedmineIds = _redmineDatabase.GetWatchersIdList(issue.Id);
+
+                    SendJournalToUser(issue.CreatorId, journalItem, issue);
+                    SendJournalToUser(issue.AssignedTo, journalItem, issue);
+                    foreach (int watcherRedmineId in watchersRedmineIds)
+                    {
+                        if (watcherRedmineId == issue.AssignedTo 
+                            || watcherRedmineId == issue.CreatorId)
+                        {
+                            return;
+                        }
+                        SendJournalToUser(watcherRedmineId, journalItem, issue);
+                    }
+                }
+
+                lastIssuesUpdateCheckTime = DateTime.Now;
                 Thread.Sleep(2500);
             }
         }
 
-        private void SendIssueToUserIfUserFound(Issue issue)
+        private void SendIssueToUser(long redmineUserId, NormalIssue issue)
         {
-            if (_redmineDatabase.TryGetTelegramUsernameByRedmineId(issue.AssignedTo, out string username)
-                && _internalDatabase.TryGetUserTelegramIdByUsername(username, out long userId))
+            if (!TryGetTelegramUserId(redmineUserId, out long telegramId))
             {
-                NormalIssue normalIssue = _redmineDatabase.GetNormalIssue(issue.Id);
-                if (issue.IsClosed)
+                return;
+            }
+
+            if (issue.AssignedTo == redmineUserId)
+            {
+                _telegramBot.SendNewIssueToAssignedUser(telegramId, issue);
+            }
+            else
+            {
+                _telegramBot.SendNewIssueToWatcherOrCreator(telegramId, issue);
+            }
+        }
+
+        private void SendJournalToUser(long redmineUserId, JournalItem journal, NormalIssue issue)
+        {
+            if (!TryGetTelegramUserId(redmineUserId, out long telegramId))
+            {
+                return;
+            }
+            bool isSendingToAssigned = issue.AssignedTo == redmineUserId;
+
+            if (journal.IsComment)
+            {
+                if (isSendingToAssigned)
                 {
-                    _telegramBot.SendClosedIssueToUser(normalIssue, userId);
+                    _telegramBot.SendCommentNotificationToAssignedUser(telegramId, journal, issue);
                 }
                 else
                 {
-                    _telegramBot.SendNewIssueToUser(normalIssue, userId);
+                    _telegramBot.SendCommentNotificationToWatcherOrCreator(telegramId, journal, issue);
                 }
             }
+            else if (journal.IsIssueStatusChange)
+            {
+                if (isSendingToAssigned)
+                {
+                    _telegramBot.SendStatusChangeNotificationToAssignedUser(telegramId, journal, issue);
+                }
+                else
+                {
+                    _telegramBot.SendStatusChangeNotificationToWatcherOrCreator(telegramId, journal, issue);
+                }
+            }
+        }
+
+        private bool TryGetTelegramUserId(long redmineId, out long telegramId)
+        {
+            if (_redmineDatabase.TryGetTelegramUsernameByRedmineId((int)redmineId, out string username)
+                && _internalDatabase.TryGetUserTelegramIdByUsername(username, out long userId))
+            {
+                telegramId = userId;
+                return true;
+            }
+
+            telegramId = 0;
+            return false;
         }
     }
 }

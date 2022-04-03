@@ -125,6 +125,36 @@ namespace RedmineTelegram
             }
         }
 
+        internal void SendStatusChangeNotificationToWatcherOrCreator(long telegramId, JournalItem journal, NormalIssue issue)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void SendStatusChangeNotificationToAssignedUser(long telegramId, JournalItem journal, NormalIssue issue)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void SendCommentNotificationToWatcherOrCreator(long telegramId, JournalItem journal, NormalIssue issue)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void SendCommentNotificationToAssignedUser(long telegramId, JournalItem journal, NormalIssue issue)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void SendNewIssueToWatcherOrCreator(long telegramId, NormalIssue issue)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void SendNewIssueToAssignedUser(long telegramId, NormalIssue issue)
+        {
+            throw new NotImplementedException();
+        }
+
         private async void OnButtonClick(object sender, CallbackQueryEventArgs e)
         {
             string username = e.CallbackQuery.From.Username;

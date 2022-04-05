@@ -272,24 +272,20 @@ namespace RedmineTelegram
         }
 
         private static readonly InlineKeyboardMarkup CancelKeyboardMarkup = new(new[] 
-        { 
-            CancelKeyboardButton
-        });
-
-        private static readonly InlineKeyboardButton[] CancelKeyboardButton = new[]
         {
-            InlineKeyboardButton.WithCallbackData("Отменить операцию", "Cancel")
-        };
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("Отменить операцию", "Cancel")
+            }
+        });
 
         private static readonly InlineKeyboardMarkup ShowIssuesKeyboardMarkup = new(new[] 
         {
-            ShowIssuesKeyboardButton
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("Посмотреть мои задачи", "WatchIssues")
+            }
         });
-
-        private static readonly InlineKeyboardButton[] ShowIssuesKeyboardButton = new[]
-        {
-            InlineKeyboardButton.WithCallbackData("Посмотреть мои задачи", "WatchIssues")
-        };
 
         private InlineKeyboardMarkup GetStatusButtons(long issueId)
         { 
@@ -324,7 +320,9 @@ namespace RedmineTelegram
         internal async void SendStatusChangeNotificationToWatcherOrCreator(long telegramUserId, 
             JournalItem journal, NormalIssue issue)
         {
-            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Стутус задачи \"" + issue.Subject + "\"" + " изменился на: \""
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️ "
+                + journal.UserName + " изменил статус задачи \"" + issue.Subject 
+                + "\"" + " с \""
                 + issue.Status + "\"⚡️" + "\n" + "Ссылка на задачу: " + issue.Link);
         }
 

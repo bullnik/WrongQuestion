@@ -12,44 +12,14 @@ namespace RedmineTelegram
         private readonly TelegramBotClient _bot;
         //Token for bot Jijoba @jijoba_bot:
         private static string Token => "2098827232:AAFu37Kco2dtw0vFRkNo0DYqKww68hY5Dh0";
-        private readonly RedmineDatabase _redmineDatabase;
-        private readonly InternalDatabase _internalDatabase;
+        private readonly RedmineAccessController _redmineAccessController;
 
-        public TelegramBot(RedmineDatabase redmineDatabase, InternalDatabase internalDatabase)
+        public TelegramBot(RedmineAccessController redmineAccessController)
         {
-            _redmineDatabase = redmineDatabase;
-            _internalDatabase = internalDatabase;
+            _redmineAccessController = redmineAccessController;
             _bot = new TelegramBotClient(Token);
             _bot.OnMessage += OnMessageHandler;
             _bot.OnCallbackQuery += OnButtonClick;
-        }
-
-        public async void SendNewIssueToUser(NormalIssue issue, long telegramUserId)
-        {
-            var editing = new InlineKeyboardMarkup(new[]
-            {
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("Поменять статус", "ViewStatus " + issue.Id.ToString()),
-                    InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString())
-                }
-            });
-            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️На вас назначена задача</b>⚡️" + '\n' + "Статус: " + issue.Status + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
-                + issue.Description + '\n' + "Приоритет: " + issue.Priority + '\n' + "Трудозатраты: " + issue.EstimatedHours + " ч."
-                + '\n' + "Назначена с " + issue.CreatedOn, replyMarkup: editing, parseMode: ParseMode.Html);
-        }
-
-        public async void SendClosedIssueToUser(NormalIssue issue, long telegramUserId)
-        {
-            var editing = new InlineKeyboardMarkup(new[]
-            {
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issue.Id.ToString())
-                }
-            });
-            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Задача закрыта</b>⚡️" + '\n' + "Название: " + issue.Subject + '\n' + "Описание: "
-                + issue.Description + '\n' + "Пожалуйста, укажите трудозатраты (если не указаны раньше)", replyMarkup: editing, parseMode: ParseMode.Html);
         }
 
         public void StartReceiving()
@@ -68,41 +38,47 @@ namespace RedmineTelegram
         private async void OnMessageHandler(object sender, MessageEventArgs e)
         {
             string userMessage = e.Message.Text;
+            long telegramUserId = e.Message.Chat.Id;
+            string telegramUsername = e.Message.Chat.Username;
+
             if (userMessage is null)
             {
                 return;
             }
-            if (userMessage.Length > 400)
-            {
-                userMessage = e.Message.Text[..400];
-            }
-            long userId = e.Message.Chat.Id;
-            bool isUserLoginInRedmine = _redmineDatabase.TryGetRedmineUserIdByTelegram(
-                e.Message.From.Username, out _);
-            _internalDatabase.InsertUserToDatabase(e.Message.Chat.Id, e.Message.Chat.Username);
 
-            if (!isUserLoginInRedmine)
+            if (_redmineAccessController.VerifyRedmineUserByTelegramIdAndUsername(
+                telegramUserId, telegramUsername, out long redmineUserId))
             {
                 await _bot.SendTextMessageAsync(e.Message.Chat.Id, "Укажите ваш Telegram в Redmine для авторизации");
                 return;
             }
 
-            var changedIssueAndExpectedAction = _internalDatabase.GetExpectedActionAndChangedIssueByUserId(userId);
+            if (userMessage.Length > 400)
+            {
+                userMessage = e.Message.Text[..400];
+            }
 
-            if (changedIssueAndExpectedAction.Item1 == ExpectedAction.Nothing)
+            var changedIssueAndExpectedAction = _redmineAccessController
+                .GetExpectedActionAndChangedIssueByUserId(telegramUserId);
+            long changedIssueId = changedIssueAndExpectedAction.Item2;
+            ExpectedAction expectedAction = changedIssueAndExpectedAction.Item1;
+
+            if (expectedAction == ExpectedAction.Nothing)
             {
-                ShowMenu(e.Message.Chat.Id);
+                ShowMenu(telegramUserId);
             }
-            else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForNewStatusId)
+            else if (expectedAction == ExpectedAction.WaitForNewStatusId)
             {
-                _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
+                _redmineAccessController.ChangeExpectedActionAndIssueByTelegramUserId(
+                    ExpectedAction.Nothing, 0, telegramUserId);
             }
-            else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForLaborCosts)
+            else if (expectedAction == ExpectedAction.WaitForLaborCosts)
             {
                 string[] parts = userMessage.Split(' ');
                 string comment = userMessage[parts[0].Length..];
                 if (int.TryParse(parts[0], out int laborCost))
                 {
+                    _redmineAccessController.AddLaborCost(changedIssueId, (double)laborCost, comment, telegramUsername);
                     _redmineDatabase.ChangeLaborCost(changedIssueAndExpectedAction.Item2, laborCost, comment,
                         e.Message.From.Username);
                     await _bot.SendTextMessageAsync(e.Message.Chat.Id, "<b>✅Успешно изменён</b>✅",
@@ -116,7 +92,7 @@ namespace RedmineTelegram
                 _internalDatabase.ChangeIssueAndExpectedActionByUserId(ExpectedAction.Nothing, 0, userId);
                 ShowMenu(userId);
             }
-            else if (changedIssueAndExpectedAction.Item1 == ExpectedAction.WaitForComment)
+            else if (expectedAction == ExpectedAction.WaitForComment)
             {
                 _redmineDatabase.AddComment(changedIssueAndExpectedAction.Item2, userMessage, e.Message.From.Username);
                 await _bot.SendTextMessageAsync(e.Message.Chat.Id, "✅<b>Комментарий добавлен</b>✅",

@@ -17,7 +17,7 @@ namespace RedmineTelegram
             ExecuteNonQueryCommand(CreateTableUsersCommandText);
         }
 
-        public Tuple<ExpectedAction, long> GetExpectedActionAndChangedIssueByUserId(long userId)
+        public Tuple<ExpectedAction, long> GetExpectedActionAndChangedIssueByTelegramUserId(long userId)
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
@@ -41,7 +41,7 @@ namespace RedmineTelegram
             return new Tuple<ExpectedAction, long>((ExpectedAction)expectedAction, issueId);
         }
 
-        public void ChangeIssueAndExpectedActionByUserId(ExpectedAction action, long issueId, long userId)
+        public void ChangeIssueAndExpectedActionByTelegramUserId(ExpectedAction action, long issueId, long userId)
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
@@ -58,7 +58,21 @@ namespace RedmineTelegram
             connection.Close();
         }
 
-        public void InsertUserToDatabase(long telegramUserId, string username)
+        public void RemoveUserFromDatabase(long telegramUserId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText =
+                @"
+                    DELETE FROM Users WHERE TelegramUserId == $tid
+                ";
+            command.Parameters.AddWithValue("$tid", telegramUserId);
+            command.ExecuteNonQuery();
+            connection.Close();
+        }
+
+        public void InsertUserToDatabaseIfNotExists(long telegramUserId, string username)
         {
             if (IsUserInDatabase(telegramUserId))
             {

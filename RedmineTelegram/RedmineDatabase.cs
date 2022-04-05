@@ -260,6 +260,11 @@ namespace RedmineTelegram
 
         }
 
+        public void ChangeLaborCost(long issueId, double hours, string comment, string tgName)
+        {
+            // бык надо реализовать
+        }
+
         public void AddComment(long issueId, string comment, string tgName)
         {
             TryGetRedmineUserIdByTelegram(tgName, out long userId);

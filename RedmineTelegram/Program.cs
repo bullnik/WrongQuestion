@@ -11,7 +11,9 @@ namespace RedmineTelegram
             InternalDatabase internalDatabase = new();
             RedmineDatabase redmineDatabase = new();
 
-            TelegramBot telegramBot = new(redmineDatabase, internalDatabase);
+            RedmineAccessController redmineAccessController = new(internalDatabase, redmineDatabase);
+
+            TelegramBot telegramBot = new(redmineAccessController);
             telegramBot.StartReceiving();
 
             IssuesUpdateChecker issuesUpdateChecker = new(internalDatabase, redmineDatabase, telegramBot);

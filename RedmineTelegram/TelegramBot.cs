@@ -128,35 +128,37 @@ namespace RedmineTelegram
         internal void SendStatusChangeNotificationToWatcherOrCreator(long telegramId, JournalItem journal, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Стутус задачи \"" + issue.Subject +"\"" + " изменился на: \"" 
-                + issue.Status + "\"⚡️" );
+                + issue.Status + "\"⚡️" + "\n" + "Ссылка на задачу: " + issue.Link);
         }
 
         internal void SendStatusChangeNotificationToAssignedUser(long telegramId, JournalItem journal, NormalIssue issue)
         {            
             await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Стутус задачи \"" + issue.Subject +"\"" + " изменился на: \"" 
-                + issue.Status + "\"⚡️" );
+                + issue.Status + "\"⚡️" + "\n" + "Ссылка на задачу: " + issue.Link );
         }
 
         internal void SendCommentNotificationToWatcherOrCreator(long telegramId, JournalItem journal, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Добавлен новый комментарий к задаче \"" + issue.Subject +"\"⚡️" 
-                + "\n" +journal.Comment);
+                + "\n" +journal.Comment + "\n" + "Ссылка на задачу: " + issue.Link);
         }
 
         internal void SendCommentNotificationToAssignedUser(long telegramId, JournalItem journal, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Добавлен новый комментарий к задаче \"" + issue.Subject +"\"⚡️" 
-                + "\n" +journal.Comment);
+                + "\n" +journal.Comment + "\n" + "Ссылка на задачу: " + issue.Link);
         }
 
         internal void SendNewIssueToWatcherOrCreator(long telegramId, NormalIssue issue)
         {
-            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Вы назначены смотрящим за задачей  \"" + issue.Subject +"\"⚡️");
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Вы назначены смотрящим за задачей  \"" + issue.Subject +"\"⚡️"
+                + "\n" + "Ссылка на задачу: " + issue.Link);
         }
 
         internal void SendNewIssueToAssignedUser(long telegramId, NormalIssue issue)
         {
-            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️На вас назначена задача \"" + issue.Subject +"\"⚡️");
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️На вас назначена задача \"" + issue.Subject +"\"⚡️"
+                + "\n" + "Ссылка на задачу: " + issue.Link);
         }
 
         private async void OnButtonClick(object sender, CallbackQueryEventArgs e)

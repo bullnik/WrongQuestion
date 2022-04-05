@@ -3,16 +3,17 @@ namespace RedmineTelegram
 {
     public class NormalIssue
     {
-        public int Id { get; set; }
-        public string Subject { get; set; }
-        public string Description { get; set; }
-        public string Status { get; set; }
-        public string Priority { get; set; }
-        public string CreatedOn { get; set; }
-        public int EstimatedHours { get; set; }
-        public string ClosedOn { get; set; }
-        public long AssignedTo { get; set; }
-        public long CreatorId { get; set; }
+        public int Id { get; private set; }
+        public string Subject { get; private set; }
+        public string Description { get; private set; }
+        public string Status { get; private set; }
+        public string Priority { get; private set; }
+        public string CreatedOn { get; private set; }
+        public int EstimatedHours { get; private set; }
+        public string ClosedOn { get; private set; }
+        public long AssignedTo { get; private set; }
+        public long CreatorId { get; private set; }
+        public string CreatorName { get; private set; }
 
         public NormalIssue(int id, string subject, string description, string status, string priority, string createdOn, int estimatedHours, string closedOn, long assignedTo, long creatorId)
         {

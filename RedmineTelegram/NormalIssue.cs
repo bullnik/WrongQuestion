@@ -10,17 +10,16 @@ namespace RedmineTelegram
         public string Priority { get; private set; }
         public string CreatedOn { get; private set; }
         public int EstimatedHours { get; private set; }
-        public long LaborCostsSum { get; private set; }
         public string ClosedOn { get; private set; }
         public long AssignedTo { get; private set; }
         public long CreatorId { get; private set; }
+        public long LaborCostsSum { get; private set; }
         public string CreatorName { get; private set; }
 
         public NormalIssue(int id, string subject, string description, 
             string status, string priority, string createdOn, int estimatedHours, 
-            string closedOn, long assignedTo, long creatorId, long laborCostsSum)
+            string closedOn, long assignedTo, long creatorId, long laborCostsSum, string creatorName)
         {
-            LaborCostsSum = laborCostsSum;
             Id = id;
             if (subject.Length > 200)
             {
@@ -39,6 +38,8 @@ namespace RedmineTelegram
             ClosedOn = closedOn;
             AssignedTo = assignedTo;
             CreatorId = creatorId;
+            LaborCostsSum = laborCostsSum;
+            CreatorName = creatorName;
         }
     }
 }

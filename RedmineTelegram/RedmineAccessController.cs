@@ -25,7 +25,7 @@ namespace RedmineTelegram
                 return true;
             }
 
-            _internalDatabase.RemoveUserFromDatabase(telegramUserId);
+            ResetExpectedActionAndIssueByTelegramUserId(telegramUserId);
             return false;
         }
 
@@ -39,9 +39,40 @@ namespace RedmineTelegram
             _internalDatabase.ChangeIssueAndExpectedActionByTelegramUserId(expectedAction, issueId, telegramUserId);
         }
 
-        public void AddLaborCost(long issueId, double hours, string comment, string telegramUsername)
+        public void ResetExpectedActionAndIssueByTelegramUserId(long telegramUserId)
         {
-            _redmineDatabase.ChangeLaborCost(issueId, hours, comment, telegramUsername);
+            ChangeExpectedActionAndIssueByTelegramUserId(ExpectedAction.Nothing, 0, telegramUserId);
+        }
+
+        public List<NormalIssue> GetUserIssuesByRedmineUserId(long redmineUserId)
+        {
+            return _redmineDatabase.GetUserIssues(redmineUserId);
+        }
+
+        public List<string> GetStatusesList()
+        {
+            return _redmineDatabase.GetStatusesList();
+        }
+
+        public NormalIssue GetIssueByIssueId(long issueId)
+        {
+            return _redmineDatabase.GetIssueByIssueId(issueId);
+        }
+
+        public bool AddLaborCost(long issueId, double hours, string comment, long redmineUserId)
+        {
+            return _redmineDatabase.AddLaborCost(issueId, hours, comment, redmineUserId);
+        }
+
+        public bool AddComment(long issueId, string comment, long redmineUserId)
+        {
+            return _redmineDatabase.AddComment(issueId, comment, redmineUserId);
+        }
+
+        public bool ChangeStatus(long issueId, string statusName, long redmineUserId)
+        {
+            long statusId = _redmineDatabase.GetStatusIdByName(statusName);
+            return _redmineDatabase.ChangeStatus(issueId, statusId, redmineUserId);
         }
     }
 }

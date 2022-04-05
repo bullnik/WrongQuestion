@@ -313,7 +313,10 @@ namespace RedmineTelegram
                 {
                     firstListButtuns.ToArray(),
                     secondRowButtuns.ToArray(),
-                    CancelKeyboardButton
+                    new[]
+                    {
+                        InlineKeyboardButton.WithCallbackData("Отменить операцию", "Cancel")
+                    }
                 });
         }
 

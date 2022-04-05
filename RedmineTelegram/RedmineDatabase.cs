@@ -74,7 +74,7 @@ namespace RedmineTelegram
             {
                 var closedOn = table[i, 2].ToString().Length;
                 var status = closedOn > 2 ? true : false;
-                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3], $"http://{host}/redmine/issues/{(int)table[i, 0]}"));
+                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
             }
             return a;
         }
@@ -97,7 +97,7 @@ namespace RedmineTelegram
             {
                 var closedOn = table[i, 2].ToString().Length;
                 var status = closedOn > 2 ? true : false;
-                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3], $"http://{host}/redmine/issues/{(int)table[i, 0]}"));
+                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
             }
             return a;
         }
@@ -181,7 +181,7 @@ u.lastname, u.firstname
             return table[1, 0].ToString();
         }
 
-        public NormalIssue GetIssueByIssueId(int issueId)
+        public NormalIssue GetIssueByIssueId(long issueId)
         {
             var table = ExecuteScript(@"
             select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id, u.lastname, u.firstname
@@ -232,16 +232,16 @@ u.lastname, u.firstname
             return (int)table[1, 0];
         }
 
-        public int GetLabourCostByIssueId(long issueId)
+        public double GetLabourCostByIssueId(long issueId)
         {
             var table = ExecuteScript(@"
             select sum(t.hours)
             from bitnami_redmine.time_entries t
-            where t.issue_id = = " + issueId);
+            where t.issue_id = " + issueId);
 
-            if (table.GetLength(0) == 1)
+            if (table.GetLength(0) == 1 || table[1, 0] is System.DBNull)
                 return 0;
-            return (int)table[1, 0];
+            return (double)table[1, 0];
         }
 
         public bool ChangeIssueStatus(long issueId, long statusId) //проверка на то что статус есть, да и на айди задачи наверн тоже

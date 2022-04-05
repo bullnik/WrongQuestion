@@ -244,25 +244,28 @@ u.lastname, u.firstname
             return (double)table[1, 0];
         }
 
-        public bool ChangeIssueStatus(long issueId, long statusId) //проверка на то что статус есть, да и на айди задачи наверн тоже
+        public bool ChangeIssueStatus(long issueId, long statusId, string updTime) //проверка на то что статус есть, да и на айди задачи наверн тоже
         {
             var check = ExecuteScript(@"
             select i.id 
             from bitnami_redmine.issues i 
             join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
-            where i.id = " + issueId
-            + " and iss.is_closed = 0");
+            where i.id = " + issueId);
 
             if (check.GetLength(0) == 1)
                 return false;
 
-            var table = ExecuteScript(@"
+            var table = ExecuteScript(@$"
             update bitnami_redmine.issues i
             join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
-            set i.status_id = " + statusId +
-            " where i.id = " + issueId
-            + " and iss.is_closed = 0");
+            set i.status_id = {statusId} 
+            where i.id = {issueId}");
 
+            var ttable = ExecuteScript(@$"
+            update bitnami_redmine.issues i
+            join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
+            set i.updated_on = cast('{updTime}' as datetime)
+            where i.id = {issueId}");
 
             return true;
         }
@@ -389,17 +392,18 @@ values({issueId}, 'Issue', {redmineUserId}, '{comment}', now(), 0)");
 
         public bool ChangeStatus(long issueId, long statusId, long redmineUserId) 
         {
+            var strDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
             var fTable = ExecuteScript(@$"
             insert into bitnami_redmine.journals (journalized_id, journalized_type, user_id, notes, created_on, private_notes)
-values({issueId}, 'Issue', {redmineUserId}, '', now(), 0)");
+values({issueId}, 'Issue', {redmineUserId}, '', cast('{strDate}' as datetime), 0)");
 
 
             var sTable = ExecuteScript(@$"
             insert into bitnami_redmine.journal_details (journal_id, property, prop_key, old_value, value)
 values({issueId}, 'attr', 'status_id', {GetStatusIdByName(GetStatusNameByIssueId(issueId))}, {statusId})");
 
-            ChangeIssueStatus(issueId, statusId);
+            ChangeIssueStatus(issueId, statusId, strDate);
 
             return true;
         }

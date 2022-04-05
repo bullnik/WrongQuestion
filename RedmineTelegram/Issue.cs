@@ -12,13 +12,15 @@ namespace RedmineTelegram
         public int AssignedTo { get; set; }
         public bool IsClosed { get; set; }
         public int Status { get; set; }
+        public string Link { get; set;}
 
-        public Issue(int id, int assignedTo, bool isClosed, int status)
+        public Issue(int id, int assignedTo, bool isClosed, int status, string link)
         {
             Id = id;
             AssignedTo = assignedTo;
             IsClosed = isClosed;
             Status = status;
+            Link = link;
         }
     }
 }

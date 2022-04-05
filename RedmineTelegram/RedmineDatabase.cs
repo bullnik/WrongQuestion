@@ -150,7 +150,7 @@ u.lastname, u.firstname
             from bitnami_redmine.journals j left join bitnami_redmine.journal_details jd on j.id = jd.journal_id 
             join bitnami_redmine.users u on u.id = j.user_id
             where j.journalized_type  = 'Issue'
-            and jd.prop_key = 'status_id' or jd.prop_key is null
+            and (jd.prop_key = 'status_id' or jd.prop_key is null)
             and j.created_on >= '{strDate}'
             order by j.created_on desc");
 

@@ -13,12 +13,13 @@ namespace RedmineTelegram
         public string ClosedOn { get; private set; }
         public long AssignedTo { get; private set; }
         public long CreatorId { get; private set; }
-        public long LaborCostsSum { get; private set; }
+        public double LaborCostsSum { get; private set; }
         public string CreatorName { get; private set; }
+        public string Link { get; private set; }
 
         public NormalIssue(int id, string subject, string description, 
             string status, string priority, string createdOn, int estimatedHours, 
-            string closedOn, long assignedTo, long creatorId, long laborCostsSum, string creatorName)
+            string closedOn, long assignedTo, long creatorId, double laborCostsSum, string creatorName)
         {
             Id = id;
             if (subject.Length > 200)
@@ -40,6 +41,7 @@ namespace RedmineTelegram
             CreatorId = creatorId;
             LaborCostsSum = laborCostsSum;
             CreatorName = creatorName;
+            Link = $"http://localhost/redmine/issues/{id}";
         }
     }
 }

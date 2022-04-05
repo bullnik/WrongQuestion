@@ -139,14 +139,14 @@ namespace RedmineTelegram
 
         internal void SendCommentNotificationToWatcherOrCreator(long telegramId, JournalItem journal, NormalIssue issue)
         {
-            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Комментарий задачи \"" + issue.Subject +"\"" + " изменился на: \"" 
-                + journal.Comment + "\"⚡️" );
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Добавлен новый комментарий к задаче \"" + issue.Subject +"\"⚡️" 
+                + "\n" +journal.Comment);
         }
 
         internal void SendCommentNotificationToAssignedUser(long telegramId, JournalItem journal, NormalIssue issue)
         {
-            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Комментарий задачи \"" + issue.Subject +"\"" + " изменился на: \"" 
-                + journal.Comment + "\"⚡️" );
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Добавлен новый комментарий к задаче \"" + issue.Subject +"\"⚡️" 
+                + "\n" +journal.Comment);
         }
 
         internal void SendNewIssueToWatcherOrCreator(long telegramId, NormalIssue issue)

@@ -127,32 +127,36 @@ namespace RedmineTelegram
 
         internal void SendStatusChangeNotificationToWatcherOrCreator(long telegramId, JournalItem journal, NormalIssue issue)
         {
-            throw new NotImplementedException();
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Стутус задачи \"" + issue.Subject +"\"" + " изменился на: \"" 
+                + issue.Status + "\"⚡️" );
         }
 
         internal void SendStatusChangeNotificationToAssignedUser(long telegramId, JournalItem journal, NormalIssue issue)
-        {
-            throw new NotImplementedException();
+        {            
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Стутус задачи \"" + issue.Subject +"\"" + " изменился на: \"" 
+                + issue.Status + "\"⚡️" );
         }
 
         internal void SendCommentNotificationToWatcherOrCreator(long telegramId, JournalItem journal, NormalIssue issue)
         {
-            throw new NotImplementedException();
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Комментарий задачи \"" + issue.Subject +"\"" + " изменился на: \"" 
+                + journal.Comment + "\"⚡️" );
         }
 
         internal void SendCommentNotificationToAssignedUser(long telegramId, JournalItem journal, NormalIssue issue)
         {
-            throw new NotImplementedException();
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Комментарий задачи \"" + issue.Subject +"\"" + " изменился на: \"" 
+                + journal.Comment + "\"⚡️" );
         }
 
         internal void SendNewIssueToWatcherOrCreator(long telegramId, NormalIssue issue)
         {
-            throw new NotImplementedException();
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️Вы назначены смотрящим за задачей  \"" + issue.Subject +"\"⚡️");
         }
 
         internal void SendNewIssueToAssignedUser(long telegramId, NormalIssue issue)
         {
-            throw new NotImplementedException();
+            await _bot.SendTextMessageAsync(telegramUserId, "<b>⚡️На вас назначена задача \"" + issue.Subject +"\"⚡️");
         }
 
         private async void OnButtonClick(object sender, CallbackQueryEventArgs e)

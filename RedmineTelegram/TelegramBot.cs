@@ -271,14 +271,20 @@ namespace RedmineTelegram
             });
         }
 
-        private static readonly InlineKeyboardMarkup CancelKeyboardMarkup = new(CancelKeyboardButton);
+        private static readonly InlineKeyboardMarkup CancelKeyboardMarkup = new(new[] 
+        { 
+            CancelKeyboardButton
+        });
 
         private static readonly InlineKeyboardButton[] CancelKeyboardButton = new[]
         {
             InlineKeyboardButton.WithCallbackData("Отменить операцию", "Cancel")
         };
 
-        private static readonly InlineKeyboardMarkup ShowIssuesKeyboardMarkup = new(ShowIssuesKeyboardButton);
+        private static readonly InlineKeyboardMarkup ShowIssuesKeyboardMarkup = new(new[] 
+        {
+            ShowIssuesKeyboardButton
+        });
 
         private static readonly InlineKeyboardButton[] ShowIssuesKeyboardButton = new[]
         {

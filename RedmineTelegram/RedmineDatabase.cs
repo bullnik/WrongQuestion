@@ -401,7 +401,10 @@ values({issueId}, 'Issue', {redmineUserId}, '', cast('{strDate}' as datetime), 0
 
             var sTable = ExecuteScript(@$"
             insert into bitnami_redmine.journal_details (journal_id, property, prop_key, old_value, value)
-values({issueId}, 'attr', 'status_id', {GetStatusIdByName(GetStatusNameByIssueId(issueId))}, {statusId})");
+values((select j.id
+from bitnami_redmine.journals j 
+order by j.id desc 
+limit 1), 'attr', 'status_id', {GetStatusIdByName(GetStatusNameByIssueId(issueId))}, {statusId})");
 
             ChangeIssueStatus(issueId, statusId, strDate);
 

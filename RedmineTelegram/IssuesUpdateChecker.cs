@@ -88,7 +88,7 @@ namespace RedmineTelegram
             }
             else
             {
-                _telegramBot.SendNewIssueToWatcherOrCreator(telegramId, issue);
+                _telegramBot.SendNewIssueToWatcher(telegramId, issue);
             }
         }
 

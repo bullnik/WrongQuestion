@@ -370,7 +370,7 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\"" 
                 + " с \"" + journal.OldIssueStatus + "\"" 
-                + "на " + "\"" + journal.CurrentIssueStatus + "\"",
+                + " на " + "\"" + journal.CurrentIssueStatus + "\"",
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id));
         }
 
@@ -380,7 +380,7 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\""
                 + " с \"" + journal.OldIssueStatus + "\""
-                + "на " + "\"" + journal.CurrentIssueStatus + "\"",
+                + " на " + "\"" + journal.CurrentIssueStatus + "\"",
                 replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id));
         }
 
@@ -389,7 +389,7 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
-                + "\"" + journal.Comment + "\"",
+                + journal.Comment,
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id));
         }
 
@@ -398,7 +398,7 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
-                + "\"" + journal.Comment + "\"",
+                + journal.Comment ,
                 replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id));
         }
 

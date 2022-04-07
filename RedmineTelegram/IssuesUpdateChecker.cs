@@ -56,7 +56,9 @@ namespace RedmineTelegram
                     NormalIssue issue = _redmineDatabase.GetIssueByIssueId(journalItem.IssueId);
                     List<long> journalRecipientsIds = _redmineDatabase.GetWatchersIdList(issue.Id);
 
+                    journalRecipientsIds.RemoveAll(id => id == issue.CreatorId);
                     journalRecipientsIds.Add(issue.CreatorId);
+                    journalRecipientsIds.RemoveAll(id => id == issue.AssignedTo);
                     journalRecipientsIds.Add(issue.AssignedTo);
                     journalRecipientsIds.RemoveAll(id => id == journalItem.UserId);
 

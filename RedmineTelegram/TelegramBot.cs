@@ -230,7 +230,7 @@ namespace RedmineTelegram
                 + "Название: " + issue.Subject + '\n'
                 + "Описание: " + issue.Description + '\n'
                 + "Приоритет: " + issue.Priority + '\n'
-                + "Трудозатраты: " + issue.EstimatedHours + " ч." + '\n'
+                + "Трудозатраты: " + issue.LaborCostsSum + " ч." + '\n'
                 + "Назначена с " + issue.CreatedOn + '\n'
                 + issue.Link;
         }
@@ -341,8 +341,8 @@ namespace RedmineTelegram
                 {
                     lines.Add(new[] 
                     { 
-                        InlineKeyboardButton.WithCallbackData(status, "ChangeStatus " + line[0] + " " + issueId),
-                        InlineKeyboardButton.WithCallbackData(status, "ChangeStatus " + line[1] + " " + issueId),
+                        InlineKeyboardButton.WithCallbackData(line[0], "ChangeStatus " + line[0] + " " + issueId),
+                        InlineKeyboardButton.WithCallbackData(line[1], "ChangeStatus " + line[1] + " " + issueId),
                     });
                     line = new();
                 }

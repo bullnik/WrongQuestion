@@ -212,6 +212,11 @@ namespace RedmineTelegram
                 replyMarkup: GetIssueEditingMarkup(issue.Id), parseMode: ParseMode.Html);
         }
 
+        private async void SendIssueWithoutEditingMarkup(long telegramUserId, NormalIssue issue)
+        {
+            await _bot.SendTextMessageAsync(telegramUserId, GetIssueInfo(issue));
+        }
+
         private static string GetIssueInfo(NormalIssue issue)
         {
             return "⚡️ Информация о задаче" + '\n'
@@ -335,8 +340,8 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\"" 
                 + " с \"" + journal.OldIssueStatus + "\"" 
-                + "на " + "\"" + journal.CurrentIssueStatus + "\"" + "\n" 
-                + issue.Link);
+                + "на " + "\"" + journal.CurrentIssueStatus + "\"");
+            SendIssueWithoutEditingMarkup(telegramUserId, issue);
         }
 
         internal async void SendStatusChangeNotificationToAssignedUser(long telegramUserId, 
@@ -345,9 +350,9 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\""
                 + " с \"" + journal.OldIssueStatus + "\""
-                + "на " + "\"" + journal.CurrentIssueStatus + "\"" + "\n" 
-                + issue.Link,
-                replyMarkup: GetIssueEditingMarkup(issue.Id));
+                + "на " + "\"" + journal.CurrentIssueStatus + "\"");
+
+            SendIssueWithEditingMarkup(telegramUserId, issue);
         }
 
         internal async void SendCommentNotificationToWatcherOrCreator(long telegramUserId, 
@@ -355,8 +360,8 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
-                + "\"" + journal.Comment + "\"" + "\n"
-                + GetIssueInfo(issue));
+                + "\"" + journal.Comment + "\"");
+            SendIssueWithoutEditingMarkup(telegramUserId, issue);
         }
 
         internal async void SendCommentNotificationToAssignedUser(long telegramUserId, 
@@ -364,9 +369,8 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
-                + "\"" + journal.Comment + "\"" + "\n"
-                + GetIssueInfo(issue),
-                replyMarkup: GetIssueEditingMarkup(issue.Id));
+                + "\"" + journal.Comment + "\"");
+            SendIssueWithEditingMarkup(telegramUserId, issue);
         }
 
         internal async void SendNewIssueToWatcher(long telegramUserId, NormalIssue issue)

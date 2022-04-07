@@ -59,18 +59,24 @@ namespace RedmineTelegram
             return _redmineDatabase.GetIssueByIssueId(issueId);
         }
 
-        public bool AddLaborCost(long issueId, double hours, string comment, long redmineUserId)
+        public bool AddLaborCost(long issueId, float hours, string comment, long redmineUserId)
         {
+            if (_redmineDatabase.CheckIsUserAssignedToIssue(issueId, redmineUserId) == false)
+                return false;
             return _redmineDatabase.AddLaborCost(issueId, hours, comment, redmineUserId);
         }
 
         public bool AddComment(long issueId, string comment, long redmineUserId)
         {
+            if (_redmineDatabase.CheckIsUserAssignedToIssue(issueId, redmineUserId) == false)
+                return false;
             return _redmineDatabase.AddComment(issueId, comment, redmineUserId);
         }
 
         public bool ChangeStatus(long issueId, string statusName, long redmineUserId)
         {
+            if (_redmineDatabase.CheckIsUserAssignedToIssue(issueId, redmineUserId) == false)
+                return false;
             long statusId = _redmineDatabase.GetStatusIdByName(statusName);
             return _redmineDatabase.ChangeStatus(issueId, statusId, redmineUserId);
         }

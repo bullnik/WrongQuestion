@@ -34,6 +34,12 @@ namespace RedmineTelegram
             return a;
         }
 
+        public bool CheckIsStatusClosing(string Status)
+        {
+
+            return true;
+        }
+
         public List<NormalIssue> LoadLastCreatedIssues(DateTime date)
         {
             var strDate = date.ToString("yyyy-MM-dd HH:mm:ss");
@@ -327,9 +333,9 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             return true;
         }
 
-        public List<int> GetWatchersIdList(long issueId)
+        public List<long> GetWatchersIdList(long issueId)
         {
-            var list = new List<int>();
+            var list = new List<long>();
             var table = ExecuteScript(@$"
             select w.user_id 
             from bitnami_redmine.watchers w 
@@ -337,7 +343,7 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
            ");
 
             for (int i = 1; i < table.GetLength(0); i++)
-                list.Add((int)table[i, 0]);
+                list.Add((long)table[i, 0]);
             return list;
         }
 
@@ -372,11 +378,25 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9], GetLabourCostByIssueId((int)table[1, 0]), $"{table[1, 10].ToString()} {table[1, 11].ToString()}");
         }
 
-        public bool AddLaborCost(long issueId, double hours, string comment, long redmineUserId) 
+        public bool CheckIsUserAssignedToIssue(long issueId, long userId)
         {
+            var table = ExecuteScript(@$"
+            select i.assigned_to_id 
+            from bitnami_redmine.issues i 
+            where i.id = {issueId}
+            and i.assigned_to_id = {userId}");
+
+            if (table.GetLength(0) == 1)
+                return false;
+            return true;
+        }
+
+        public bool AddLaborCost(long issueId, float hours, string comment, long redmineUserId) 
+        {
+
             var table = ExecuteScript(@"
             insert into bitnami_redmine.time_entries (user_id, project_id, hours, activity_id, spent_on , tyear, tmonth, tweek, created_on, updated_on, author_id, issue_id, comments)"
-+ $" values({redmineUserId}, {GetProjectIdByIssueId(issueId)}, {hours}, 9, now(), year(now()), month(now()), week(now()), now(), now(), {redmineUserId}, {issueId}, '{comment}')");
++ $" values({redmineUserId}, {GetProjectIdByIssueId(issueId)}, {hours.ToString().Replace(',', '.')}, 9, now(), year(now()), month(now()), week(now()), now(), now(), {redmineUserId}, {issueId}, '{comment}')");
 
             return true;
         }

@@ -341,8 +341,8 @@ namespace RedmineTelegram
                 {
                     lines.Add(new[] 
                     { 
-                        InlineKeyboardButton.WithCallbackData(status, "ChangeStatus " + line[0] + " " + issueId),
-                        InlineKeyboardButton.WithCallbackData(status, "ChangeStatus " + line[1] + " " + issueId),
+                        InlineKeyboardButton.WithCallbackData(line[0], "ChangeStatus " + line[0] + " " + issueId),
+                        InlineKeyboardButton.WithCallbackData(line[1], "ChangeStatus " + line[1] + " " + issueId),
                     });
                     line = new();
                 }

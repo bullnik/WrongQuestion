@@ -80,7 +80,7 @@ namespace RedmineTelegram
             {
                 string[] parts = userMessage.Split(' ');
                 string comment = userMessage[parts[0].Length..];
-                if (double.TryParse(parts[0], out double laborCost))
+                if (float.TryParse(parts[0], out float laborCost))
                 {
                     if (_redmineAccessController.AddLaborCost(changedIssueId, laborCost, comment, redmineUserId))
                     {

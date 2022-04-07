@@ -37,16 +37,16 @@ namespace RedmineTelegram
 
                 foreach (NormalIssue issue in lastCreatedIssues)
                 {
-                    List<int> watchersRedmineIds = _redmineDatabase.GetWatchersIdList(issue.Id);
+                    List<long> issueRecipientsIds = _redmineDatabase.GetWatchersIdList(issue.Id);
 
-                    SendIssueToUser(issue.AssignedTo, issue);
-                    foreach (int watcherRedmineId in watchersRedmineIds)
+                    issueRecipientsIds.Remove(issue.CreatorId);
+                    if (!issueRecipientsIds.Contains(issue.AssignedTo))
                     {
-                        if (watcherRedmineId == issue.AssignedTo 
-                            || watcherRedmineId == issue.CreatorId)
-                        {
-                            continue;
-                        }
+                        issueRecipientsIds.Add(issue.AssignedTo);
+                    }
+
+                    foreach (int watcherRedmineId in issueRecipientsIds)
+                    {
                         SendIssueToUser(watcherRedmineId, issue);
                     }
                 }
@@ -54,18 +54,14 @@ namespace RedmineTelegram
                 foreach (JournalItem journalItem in lastEditedJournals)
                 {
                     NormalIssue issue = _redmineDatabase.GetIssueByIssueId(journalItem.IssueId);
-                    List<int> watchersRedmineIds = _redmineDatabase.GetWatchersIdList(issue.Id);
+                    List<long> journalRecipientsIds = _redmineDatabase.GetWatchersIdList(issue.Id);
 
-                    SendJournalToUser(issue.CreatorId, journalItem, issue);
-                    if (issue.CreatorId != issue.AssignedTo)
-                        SendJournalToUser(issue.AssignedTo, journalItem, issue);
-                    foreach (int watcherRedmineId in watchersRedmineIds)
+                    journalRecipientsIds.Add(issue.CreatorId);
+                    journalRecipientsIds.Add(issue.AssignedTo);
+                    journalRecipientsIds.RemoveAll(id => id == journalItem.UserId);
+
+                    foreach (int watcherRedmineId in journalRecipientsIds)
                     {
-                        if (watcherRedmineId == issue.AssignedTo 
-                            || watcherRedmineId == issue.CreatorId)
-                        {
-                            continue;
-                        }
                         SendJournalToUser(watcherRedmineId, journalItem, issue);
                     }
                 }
@@ -108,7 +104,10 @@ namespace RedmineTelegram
                 }
                 else
                 {
-                    _telegramBot.SendCommentNotificationToWatcherOrCreator(telegramId, journal, issue);
+                    if (redmineUserId == issue.CreatorId)
+                    {
+                        _telegramBot.SendCommentNotificationToWatcherOrCreator(telegramId, journal, issue);
+                    }
                 }
             }
             else if (journal.IsIssueStatusChange)
@@ -119,7 +118,10 @@ namespace RedmineTelegram
                 }
                 else
                 {
-                    _telegramBot.SendStatusChangeNotificationToWatcherOrCreator(telegramId, journal, issue);
+                    if (redmineUserId == issue.CreatorId || issue.IsClosed)
+                    {
+                        _telegramBot.SendStatusChangeNotificationToWatcherOrCreator(telegramId, journal, issue);
+                    }
                 }
             }
         }

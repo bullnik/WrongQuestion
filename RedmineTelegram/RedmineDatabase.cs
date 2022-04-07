@@ -28,16 +28,23 @@ namespace RedmineTelegram
             {
                 int estHours;
                 Int32.TryParse(table[i, 6].ToString(), out estHours);
-                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), table[i, 3].ToString(), table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString(), (int)table[i, 8], (int)table[i, 9], GetLabourCostByIssueId((int)table[i, 0]), $"{table[i, 10].ToString()} {table[i, 11].ToString()}"));
+                var status = table[i, 3].ToString();
+                var isClosing = CheckIsStatusClosing(status);
+                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), status, table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString(), (int)table[i, 8], (int)table[i, 9], GetLabourCostByIssueId((int)table[i, 0]), $"{table[i, 10].ToString()} {table[i, 11].ToString()}", isClosing));
 
             }
             return a;
         }
 
-        public bool CheckIsStatusClosing(string Status)
+        public bool CheckIsStatusClosing(string status)
         {
-
-            return true;
+            var table = ExecuteScript(@$"
+            select is2.is_closed 
+            from bitnami_redmine.issue_statuses is2 
+            where is2.name = '{status}'");
+            var stat = (bool)table[1, 0];
+            
+            return stat;
         }
 
         public List<NormalIssue> LoadLastCreatedIssues(DateTime date)
@@ -52,14 +59,15 @@ namespace RedmineTelegram
             join bitnami_redmine.users u on i.author_id = u.id 
             where i.created_on >= '{strDate}'");
 
-
             List<NormalIssue> a = new();
 
             for (int i = 1; i < table.GetLength(0); i++)
             {
                 int estHours;
                 Int32.TryParse(table[i, 6].ToString(), out estHours);
-                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), table[i, 3].ToString(), table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString(), (int)table[i, 8], (int)table[i, 9], GetLabourCostByIssueId((int)table[i, 0]), $"{table[i, 10].ToString()} {table[i, 11].ToString()}"));
+                var status = table[i, 3].ToString();
+                var isClosing = CheckIsStatusClosing(status);
+                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), status, table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString(), (int)table[i, 8], (int)table[i, 9], GetLabourCostByIssueId((int)table[i, 0]), $"{table[i, 10].ToString()} {table[i, 11].ToString()}", isClosing));
 
             }
             return a;
@@ -199,7 +207,9 @@ u.lastname, u.firstname
 
             int estHours;
             Int32.TryParse(table[1, 6].ToString(), out estHours);
-            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9], GetLabourCostByIssueId((int)table[1, 0]), $"{table[1, 10].ToString()} {table[1, 11].ToString()}");
+            var status = table[1, 3].ToString();
+            var isClosing = CheckIsStatusClosing(status);
+            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), status, table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9], GetLabourCostByIssueId((int)table[1, 0]), $"{table[1, 10].ToString()} {table[1, 11].ToString()}", isClosing);
 
         }
 
@@ -343,7 +353,7 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
            ");
 
             for (int i = 1; i < table.GetLength(0); i++)
-                list.Add((long)table[i, 0]);
+                list.Add((int)table[i, 0]);
             return list;
         }
 
@@ -375,7 +385,9 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             where i.id = " + issueId);
             int estHours;
             Int32.TryParse(table[1, 6].ToString(), out estHours);
-            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9], GetLabourCostByIssueId((int)table[1, 0]), $"{table[1, 10].ToString()} {table[1, 11].ToString()}");
+            var status = table[1, 3].ToString();
+            var isClosing = CheckIsStatusClosing(status);
+            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9], GetLabourCostByIssueId((int)table[1, 0]), $"{table[1, 10].ToString()} {table[1, 11].ToString()}", isClosing);
         }
 
         public bool CheckIsUserAssignedToIssue(long issueId, long userId)

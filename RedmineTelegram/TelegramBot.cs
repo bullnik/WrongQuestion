@@ -223,12 +223,15 @@ namespace RedmineTelegram
         private async void SendIssueWithEditingMarkup(long chatId, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(chatId, GetIssueInfo(issue), 
-                replyMarkup: GetIssueEditingMarkup(issue.Id), parseMode: ParseMode.Html);
+                replyMarkup: GetIssueEditingMarkup(issue.Id),
+                parseMode: ParseMode.MarkdownV2);
         }
 
         private async void SendIssueWithoutEditingMarkup(long telegramUserId, NormalIssue issue)
         {
-            await _bot.SendTextMessageAsync(telegramUserId, GetIssueInfo(issue));
+            await _bot.SendTextMessageAsync(telegramUserId, 
+                GetIssueInfo(issue),
+                parseMode: ParseMode.MarkdownV2);
         }
 
         private static string GetIssueInfo(NormalIssue issue)
@@ -379,7 +382,8 @@ namespace RedmineTelegram
                 + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\"" 
                 + " с \"" + journal.OldIssueStatus + "\"" 
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
-                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id));
+                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
+                parseMode: ParseMode.MarkdownV2);
         }
 
         internal async void SendStatusChangeNotificationToAssignedUser(long telegramUserId, 
@@ -389,7 +393,8 @@ namespace RedmineTelegram
                 + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\""
                 + " с \"" + journal.OldIssueStatus + "\""
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
-                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id));
+                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
+                parseMode: ParseMode.MarkdownV2);
         }
 
         internal async void SendCommentNotificationToWatcherOrCreator(long telegramUserId, 
@@ -398,7 +403,8 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
                 + journal.Comment,
-                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id));
+                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
+                parseMode: ParseMode.MarkdownV2);
         }
 
         internal async void SendCommentNotificationToAssignedUser(long telegramUserId, 
@@ -406,8 +412,9 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
-                + journal.Comment ,
-                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id));
+                + journal.Comment,
+                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
+                parseMode: ParseMode.MarkdownV2);
         }
 
         internal async void SendNewIssueToWatcher(long telegramUserId, NormalIssue issue)
@@ -415,7 +422,8 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId,
                 "⚡️ " + issue.CreatorName + " назначил вас наблюдалетем за задачей "
                 + "\"" + issue.Subject + "\"",
-                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id));
+                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
+                parseMode: ParseMode.MarkdownV2);
         }
 
         internal async void SendNewIssueToAssignedUser(long telegramUserId, NormalIssue issue)
@@ -423,7 +431,8 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId,
                 "⚡️ " + issue.CreatorName + " назначил на вас новую задачу "
                 + "\"" + issue.Subject + "\"",
-                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id));
+                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
+                parseMode: ParseMode.MarkdownV2);
         }
     }
 }

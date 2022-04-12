@@ -238,11 +238,12 @@ namespace RedmineTelegram
         {
             return "⚡️ Информация о задаче" + '\n'
                 + "Статус: " + issue.Status + '\n'
-                + "Название: " + issue.Link + '\n'
+                + "Название: " + issue.Subject + '\n'
                 + "Описание: " + issue.Description + '\n'
                 + "Приоритет: " + issue.Priority + '\n'
                 + "Трудозатраты: " + issue.LaborCostsSum + " ч." + '\n'
-                + "Назначена с " + issue.CreatedOn + '\n';
+                + "Назначена с " + issue.CreatedOn + '\n'
+                + issue.Link;
         }
 
         private async void ShowIssues(long chatId, List<NormalIssue> issues)

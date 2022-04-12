@@ -377,7 +377,7 @@ namespace RedmineTelegram
             JournalItem journal, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\"" 
+                + journal.UserName + " изменил статус задачи " + issue.Link + "\"" + issue.Subject + "\"" 
                 + " с \"" + journal.OldIssueStatus + "\"" 
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
@@ -388,7 +388,7 @@ namespace RedmineTelegram
             JournalItem journal, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\""
+                + journal.UserName + " изменил статус задачи " + issue.Link + "\"" + issue.Subject + "\""
                 + " с \"" + journal.OldIssueStatus + "\""
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
                 replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
@@ -399,7 +399,7 @@ namespace RedmineTelegram
             JournalItem journal, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " добавил комментарий к задаче \"" + issue.Link + ": " + issue.Subject + "\":" + "\n"
+                + journal.UserName + " добавил комментарий к задаче " + issue.Link + ": " + "\"" + issue.Subject + ":" + "\n"
                 + journal.Comment,
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
                 parseMode: ParseMode.Html);
@@ -409,7 +409,7 @@ namespace RedmineTelegram
             JournalItem journal, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
+                + journal.UserName + " добавил комментарий к задаче " + issue.Link + ": " + "\""  + issue.Subject + ":" + "\n"
                 + journal.Comment,
                 replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
                 parseMode: ParseMode.Html);
@@ -418,7 +418,7 @@ namespace RedmineTelegram
         internal async void SendNewIssueToWatcher(long telegramUserId, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId,
-                "⚡️ " + issue.CreatorName + " назначил вас наблюдалетем за задачей "
+                "⚡️ " + issue.CreatorName + " назначил вас наблюдалетем за задачей " + issue.Link
                 + "\"" + issue.Subject + "\"",
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
                 parseMode: ParseMode.Html);
@@ -427,7 +427,7 @@ namespace RedmineTelegram
         internal async void SendNewIssueToAssignedUser(long telegramUserId, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId,
-                "⚡️ " + issue.CreatorName + " назначил на вас новую задачу "
+                "⚡️ " + issue.CreatorName + " назначил на вас новую задачу " + issue.Link
                 + "\"" + issue.Subject + "\"",
                 replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
                 parseMode: ParseMode.Html);

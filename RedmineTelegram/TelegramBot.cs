@@ -85,11 +85,13 @@ namespace RedmineTelegram
                     if (_redmineAccessController.AddLaborCost(changedIssueId, laborCost, comment, redmineUserId))
                     {
                         await _bot.SendTextMessageAsync(telegramUserId, "✅ <b>Трудозатраты добавлены</b>",
+                            replyMarkup: IssuesWatchKeyboardMarkup,
                             parseMode: ParseMode.Html);
                     }
                     else
                     {
                         await _bot.SendTextMessageAsync(telegramUserId, "❌ <b>Произошла ошибка</b>",
+                            replyMarkup: IssuesWatchKeyboardMarkup,
                             parseMode: ParseMode.Html);
                     }
                     _redmineAccessController.ResetExpectedActionAndIssueByTelegramUserId(telegramUserId);
@@ -105,12 +107,14 @@ namespace RedmineTelegram
                 if (_redmineAccessController.AddComment(changedIssueId, userMessage, redmineUserId))
                 {
                     await _bot.SendTextMessageAsync(telegramUserId, "✅ <b>Комментарий добавлен</b>",
-                                    parseMode: ParseMode.Html);
+                        replyMarkup: IssuesWatchKeyboardMarkup,
+                        parseMode: ParseMode.Html);
                 }
                 else
                 {
                     await _bot.SendTextMessageAsync(telegramUserId, "❌ <b>Произошла ошибка</b>",
-                            parseMode: ParseMode.Html);
+                        replyMarkup: IssuesWatchKeyboardMarkup,
+                        parseMode: ParseMode.Html);
                 }
                 _redmineAccessController.ResetExpectedActionAndIssueByTelegramUserId(telegramUserId);
             }
@@ -155,10 +159,10 @@ namespace RedmineTelegram
             }
             else if (command == "AddComment")
             {
-                await _bot.SendTextMessageAsync(telegramUserId, "📝 Введите комментарий",
-                    replyMarkup: CancelKeyboardMarkup, parseMode: ParseMode.Html);
                 _redmineAccessController.ChangeExpectedActionAndIssueByTelegramUserId(
                     ExpectedAction.WaitForComment, long.Parse(callbackData[1]), telegramUserId);
+                await _bot.SendTextMessageAsync(telegramUserId, "📝 Введите комментарий",
+                    replyMarkup: CancelKeyboardMarkup, parseMode: ParseMode.Html);
             }
             else if (command == "ChangeStatus")
             {
@@ -180,21 +184,25 @@ namespace RedmineTelegram
                 if (_redmineAccessController.ChangeStatus(issueId, status, redmineUserId))
                 {
                     await _bot.SendTextMessageAsync(telegramUserId,
-                        "✅ <b>Статус задачи изменен</b>", parseMode: ParseMode.Html);
+                        "✅ <b>Статус задачи изменен</b>", 
+                        replyMarkup: IssuesWatchKeyboardMarkup,
+                        parseMode: ParseMode.Html);
                 }
                 else
                 {
                     await _bot.SendTextMessageAsync(telegramUserId,
-                        "❌ <b>Произошла ошибка при изменении статуса</b>", parseMode: ParseMode.Html);
+                        "❌ <b>Произошла ошибка при изменении статуса</b>",
+                        replyMarkup: IssuesWatchKeyboardMarkup, 
+                        parseMode: ParseMode.Html);
                 }
             }
             else if (command == "ViewStatus")
             {
                 long issueId = long.Parse(callbackData[1]);
-                await _bot.SendTextMessageAsync(telegramUserId, "📝 Выберите новый статус задачи",
-                    replyMarkup: GetStatusButtons(issueId), parseMode: ParseMode.Html);
                 _redmineAccessController.ChangeExpectedActionAndIssueByTelegramUserId(
                     ExpectedAction.WaitForNewStatusId, issueId, telegramUserId);
+                await _bot.SendTextMessageAsync(telegramUserId, "📝 Выберите новый статус задачи",
+                    replyMarkup: GetStatusButtons(issueId), parseMode: ParseMode.Html);
             }
             else if (command == "ChangeLabor")
             {

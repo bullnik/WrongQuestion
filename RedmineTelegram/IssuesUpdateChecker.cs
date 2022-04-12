@@ -40,10 +40,8 @@ namespace RedmineTelegram
                     List<long> issueRecipientsIds = _redmineDatabase.GetWatchersIdList(issue.Id);
 
                     issueRecipientsIds.Remove(issue.CreatorId);
-                    if (!issueRecipientsIds.Contains(issue.AssignedTo))
-                    {
-                        issueRecipientsIds.Add(issue.AssignedTo);
-                    }
+                    issueRecipientsIds.RemoveAll(id => id == issue.AssignedTo);
+                    issueRecipientsIds.Add(issue.AssignedTo);
 
                     foreach (int watcherRedmineId in issueRecipientsIds)
                     {

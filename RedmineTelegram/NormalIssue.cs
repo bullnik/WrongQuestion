@@ -43,7 +43,7 @@ namespace RedmineTelegram
             LaborCostsSum = laborCostsSum;
             CreatorName = creatorName;
             IsClosed = isClosed;
-            Link = $"http://localhost/redmine/issues/{id}";
+            Link = $"[{Subject}](https://ca62-77-222-118-66.ngrok.io/redmine/issues/{Id})";
         }
     }
 }

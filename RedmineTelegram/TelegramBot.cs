@@ -241,7 +241,7 @@ namespace RedmineTelegram
                 + "Название: " + issue.Link + '\n'
                 + "Описание: " + issue.Description + '\n'
                 + "Приоритет: " + issue.Priority + '\n'
-                + "Трудозатраты: " + Math.Round(issue.LaborCostsSum, 2) + " часов" + '\n'
+                + "Трудозатраты: " + Math.Round(issue.LaborCostsSum, 2) + " ч." + '\n'
                 + "Назначена с " + issue.CreatedOn + '\n';
         }
 

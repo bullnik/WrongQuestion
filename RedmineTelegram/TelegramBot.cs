@@ -224,14 +224,14 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(chatId, GetIssueInfo(issue), 
                 replyMarkup: GetIssueEditingMarkup(issue.Id),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
 
         private async void SendIssueWithoutEditingMarkup(long telegramUserId, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, 
                 GetIssueInfo(issue),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
 
         private static string GetIssueInfo(NormalIssue issue)
@@ -241,8 +241,8 @@ namespace RedmineTelegram
                 + "Название: " + issue.Link + '\n'
                 + "Описание: " + issue.Description + '\n'
                 + "Приоритет: " + issue.Priority + '\n'
-                + "Трудозатраты: " + issue.LaborCostsSum + " ч" + '\n'
-                + "Назначена с " + issue.CreatedOn.Replace('.', '/') + '\n';
+                + "Трудозатраты: " + Math.Round(issue.LaborCostsSum, 2) + " часов" + '\n'
+                + "Назначена с " + issue.CreatedOn + '\n';
         }
 
         private async void ShowIssues(long chatId, List<NormalIssue> issues)
@@ -382,7 +382,7 @@ namespace RedmineTelegram
                 + " с \"" + journal.OldIssueStatus + "\"" 
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
 
         internal async void SendStatusChangeNotificationToAssignedUser(long telegramUserId, 
@@ -393,7 +393,7 @@ namespace RedmineTelegram
                 + " с \"" + journal.OldIssueStatus + "\""
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
                 replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
 
         internal async void SendCommentNotificationToWatcherOrCreator(long telegramUserId, 
@@ -403,7 +403,7 @@ namespace RedmineTelegram
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
                 + journal.Comment,
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
 
         internal async void SendCommentNotificationToAssignedUser(long telegramUserId, 
@@ -413,7 +413,7 @@ namespace RedmineTelegram
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
                 + journal.Comment,
                 replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
 
         internal async void SendNewIssueToWatcher(long telegramUserId, NormalIssue issue)
@@ -422,7 +422,7 @@ namespace RedmineTelegram
                 "⚡️ " + issue.CreatorName + " назначил вас наблюдалетем за задачей "
                 + "\"" + issue.Subject + "\"",
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
 
         internal async void SendNewIssueToAssignedUser(long telegramUserId, NormalIssue issue)
@@ -431,7 +431,7 @@ namespace RedmineTelegram
                 "⚡️ " + issue.CreatorName + " назначил на вас новую задачу "
                 + "\"" + issue.Subject + "\"",
                 replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
     }
 }

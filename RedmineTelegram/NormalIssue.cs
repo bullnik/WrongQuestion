@@ -43,7 +43,7 @@ namespace RedmineTelegram
             LaborCostsSum = laborCostsSum;
             CreatorName = creatorName;
             IsClosed = isClosed;
-            Link = $"<a href=\"http://f88d-77-222-118-66.ngrok.io/redmine/issues/{Id}\">{Subject}</a>";
+            Link = $"<a href=\"http://f88d-77-222-118-66.ngrok.io/redmine/issues/{Id}\">pm#{Id}</a>";
             //Link = $"[{Subject}](http://f88d-77-222-118-66.ngrok.io/redmine/issues/{Id})";
         }
     }

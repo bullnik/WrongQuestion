@@ -236,9 +236,8 @@ namespace RedmineTelegram
 
         private static string GetIssueInfo(NormalIssue issue)
         {
-            return "⚡️ Информация о задаче" + '\n'
+            return issue.Link + ": " + issue.Subject + '\n'
                 + "Статус: " + issue.Status + '\n'
-                + "Название: " + issue.Link + '\n'
                 + "Описание: " + issue.Description + '\n'
                 + "Приоритет: " + issue.Priority + '\n'
                 + "Трудозатраты: " + Math.Round(issue.LaborCostsSum, 2) + " ч." + '\n'
@@ -400,7 +399,7 @@ namespace RedmineTelegram
             JournalItem journal, NormalIssue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
+                + journal.UserName + " добавил комментарий к задаче \"" + issue.Link + ": " + issue.Subject + "\":" + "\n"
                 + journal.Comment,
                 replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
                 parseMode: ParseMode.Html);

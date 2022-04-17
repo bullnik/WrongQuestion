@@ -85,13 +85,13 @@ namespace RedmineTelegram
                     if (RedmineAccessController.AddLaborCost(changedIssueId, laborCost, comment, redmineUserId))
                     {
                         await _bot.SendTextMessageAsync(telegramUserId, "✅ <b>Трудозатраты добавлены</b>",
-                            replyMarkup: ReplyMarkups.WatchIssues,
+                            replyMarkup: ReplyMarkups.ListIssues,
                             parseMode: ParseMode.Html);
                     }
                     else
                     {
                         await _bot.SendTextMessageAsync(telegramUserId, "❌ <b>Произошла ошибка</b>",
-                            replyMarkup: ReplyMarkups.WatchIssues,
+                            replyMarkup: ReplyMarkups.ListIssues,
                             parseMode: ParseMode.Html);
                     }
                     _redmineAccessController.ResetExpectedActionAndIssueByTelegramUserId(telegramUserId);
@@ -100,7 +100,7 @@ namespace RedmineTelegram
                 {
                     await _bot.SendTextMessageAsync(telegramUserId, 
                         "❌ <b>Неверный формат времени</b>",
-                        replyMarkup: ReplyMarkups.Cancel, 
+                        replyMarkup: ReplyMarkups.CancelOperation, 
                         parseMode: ParseMode.Html);
                 }
             }
@@ -110,14 +110,14 @@ namespace RedmineTelegram
                 {
                     await _bot.SendTextMessageAsync(telegramUserId, 
                         "✅ <b>Комментарий добавлен</b>",
-                        replyMarkup: ReplyMarkups.WatchIssues,
+                        replyMarkup: ReplyMarkups.ListIssues,
                         parseMode: ParseMode.Html);
                 }
                 else
                 {
                     await _bot.SendTextMessageAsync(telegramUserId, 
                         "❌ <b>Произошла ошибка</b>",
-                        replyMarkup: ReplyMarkups.WatchIssues,
+                        replyMarkup: ReplyMarkups.ListIssues,
                         parseMode: ParseMode.Html);
                 }
                 _redmineAccessController.ResetExpectedActionAndIssueByTelegramUserId(telegramUserId);
@@ -164,7 +164,7 @@ namespace RedmineTelegram
                 _redmineAccessController.ChangeExpectedActionAndIssueByTelegramUserId(
                     ExpectedAction.WaitForComment, callbackData.TargetIssueId, telegramUserId);
                 await _bot.SendTextMessageAsync(telegramUserId, "📝 Введите комментарий",
-                    replyMarkup: ReplyMarkups.Cancel, parseMode: ParseMode.Html);
+                    replyMarkup: ReplyMarkups.CancelOperation, parseMode: ParseMode.Html);
             }
             else if (command == CallbackDataCommand.ChangeStatus)
             {
@@ -174,14 +174,14 @@ namespace RedmineTelegram
                 {
                     await _bot.SendTextMessageAsync(telegramUserId,
                         "✅ <b>Статус задачи изменен</b>", 
-                        replyMarkup: ReplyMarkups.WatchIssues,
+                        replyMarkup: ReplyMarkups.ListIssues,
                         parseMode: ParseMode.Html);
                 }
                 else
                 {
                     await _bot.SendTextMessageAsync(telegramUserId,
                         "❌ <b>Произошла ошибка при изменении статуса</b>",
-                        replyMarkup: ReplyMarkups.WatchIssues, 
+                        replyMarkup: ReplyMarkups.ListIssues, 
                         parseMode: ParseMode.Html);
                 }
             }
@@ -202,7 +202,7 @@ namespace RedmineTelegram
                     "📝 Введите трудозатраты (в часах)" + '\n' 
                     + "И на что они потрачены, через пробел" + '\n' 
                     + "Пример: 4,5 работал",
-                    replyMarkup: ReplyMarkups.Cancel, 
+                    replyMarkup: ReplyMarkups.CancelOperation, 
                     parseMode: ParseMode.Html);
             }
             else if (command == CallbackDataCommand.CancelOperation)
@@ -249,7 +249,7 @@ namespace RedmineTelegram
 
             await _bot.SendTextMessageAsync(chatId, 
                 "⚡️ <b>Ваши задачи: </b>",
-                replyMarkup: ReplyMarkups.GetIssuesSubjectWithWatchIssueCallbackData(issues), 
+                replyMarkup: ReplyMarkups.GetIssuesSubjectWithShowIssueCallbackData(issues), 
                 parseMode: ParseMode.Html);
         }
 
@@ -257,7 +257,7 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(chatId, 
                 "Вы успешно авторизованы в Redmine.",
-                replyMarkup: ReplyMarkups.WatchIssues);
+                replyMarkup: ReplyMarkups.ListIssues);
         }
 
         internal async void SendStatusChangeNotificationToWatcherOrCreator(long telegramUserId, 
@@ -266,7 +266,7 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {journal.UserName} изменил статус задачи {issue.Link}: {issue.Subject} "
                 + $"с \"{journal.OldIssueStatus}\" на \"{journal.CurrentIssueStatus}\"",
-                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
         }
 
@@ -276,7 +276,7 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId, 
                 $"⚡️ {journal.UserName} изменил статус задачи {issue.Link}: {issue.Subject} "
                 + $"с \"{journal.OldIssueStatus}\" на \"{journal.CurrentIssueStatus}\"",
-                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
         }
 
@@ -286,7 +286,7 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {journal.UserName} добавил комментарий к задаче {issue.Link}: {issue.Subject}:" + '\n'
                 + journal.Comment,
-                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
         }
 
@@ -296,7 +296,7 @@ namespace RedmineTelegram
             await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {journal.UserName} добавил комментарий к задаче {issue.Link}: {issue.Subject}:" + '\n' 
                 + journal.Comment,
-                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
         }
 
@@ -304,7 +304,7 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {issue.CreatorName} назначил вас наблюдалетем за задачей {issue.Link}: {issue.Subject}",
-                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
         }
 
@@ -312,7 +312,7 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {issue.CreatorName} назначил на вас новую задачу {issue.Link}: {issue.Subject}",
-                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
         }
     }

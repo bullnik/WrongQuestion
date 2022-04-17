@@ -9,7 +9,7 @@ namespace RedmineTelegram
 {
     public sealed class ReplyMarkups
     {
-        public static InlineKeyboardMarkup GetIssuesSubjectWithWatchIssueCallbackData(List<Issue> issues)
+        public static InlineKeyboardMarkup GetIssuesSubjectWithShowIssueCallbackData(List<Issue> issues)
         {
             List<InlineKeyboardButton[]> keyboardButtons = new();
 
@@ -25,7 +25,7 @@ namespace RedmineTelegram
             return new(keyboardButtons.ToArray());
         }
 
-        public static InlineKeyboardMarkup GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(long issueId)
+        public static InlineKeyboardMarkup GetShowInfoWithShowIssueWithoutKeyboardMarkupCallbackData(long issueId)
         {
             return new InlineKeyboardMarkup(new[]
             {
@@ -37,7 +37,7 @@ namespace RedmineTelegram
             });
         }
 
-        public static InlineKeyboardMarkup GetShowInfoWithWatchIssueCallbackData(long issueId)
+        public static InlineKeyboardMarkup GetShowInfoWithShowIssueCallbackData(long issueId)
         {
             return new InlineKeyboardMarkup(new[]
             {
@@ -71,7 +71,7 @@ namespace RedmineTelegram
             });
         }
 
-        public static readonly InlineKeyboardMarkup Cancel = new(new[]
+        public static readonly InlineKeyboardMarkup CancelOperation = new(new[]
         {
             new[]
             {
@@ -80,7 +80,7 @@ namespace RedmineTelegram
             }
         });
 
-        public static readonly InlineKeyboardMarkup WatchIssues = new(new[]
+        public static readonly InlineKeyboardMarkup ListIssues = new(new[]
         {
             new[]
             {

@@ -216,18 +216,17 @@ namespace RedmineTelegram
         {
             await _bot.SendTextMessageAsync(telegramUserId, 
                 GetIssueInfo(issue),
-                parseMode: ParseMode.MarkdownV2);
+                parseMode: ParseMode.Html);
         }
 
         private static string GetIssueInfo(Issue issue)
         {
-            return "⚡️ Информация о задаче" + '\n'
+            return issue.Link + ": " + issue.Subject + '\n'
                 + "Статус: " + issue.Status + '\n'
-                + "Название: " + issue.Link + '\n'
                 + "Описание: " + issue.Description + '\n'
                 + "Приоритет: " + issue.Priority + '\n'
-                + "Трудозатраты: " + issue.LaborCostsSum + " ч" + '\n'
-                + "Назначена с " + issue.CreatedOn.Replace('.', '/') + '\n';
+                + "Трудозатраты: " + Math.Round(issue.LaborCostsSum, 2) + " ч." + '\n'
+                + "Назначена с " + issue.CreatedOn + '\n';
         }
 
         private async void ShowIssuesList(long chatId, List<Issue> issues)
@@ -252,7 +251,7 @@ namespace RedmineTelegram
             JournalItem journal, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\"" 
+                + journal.UserName + " изменил статус задачи " + issue.Link + "\"" + issue.Subject + "\"" 
                 + " с \"" + journal.OldIssueStatus + "\"" 
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
                 replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
@@ -263,7 +262,7 @@ namespace RedmineTelegram
             JournalItem journal, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\""
+                + journal.UserName + " изменил статус задачи " + issue.Link + "\"" + issue.Subject + "\""
                 + " с \"" + journal.OldIssueStatus + "\""
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
                 replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
@@ -274,7 +273,7 @@ namespace RedmineTelegram
             JournalItem journal, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
+                + journal.UserName + " добавил комментарий к задаче " + issue.Link + ": " + "\"" + issue.Subject + ":" + "\n"
                 + journal.Comment,
                 replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
@@ -284,7 +283,7 @@ namespace RedmineTelegram
             JournalItem journal, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
-                + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
+                + journal.UserName + " добавил комментарий к задаче " + issue.Link + ": " + "\""  + issue.Subject + ":" + "\n"
                 + journal.Comment,
                 replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
@@ -293,7 +292,7 @@ namespace RedmineTelegram
         internal async void SendNewIssueToWatcher(long telegramUserId, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId,
-                "⚡️ " + issue.CreatorName + " назначил вас наблюдалетем за задачей "
+                "⚡️ " + issue.CreatorName + " назначил вас наблюдалетем за задачей " + issue.Link
                 + "\"" + issue.Subject + "\"",
                 replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
@@ -302,7 +301,7 @@ namespace RedmineTelegram
         internal async void SendNewIssueToAssignedUser(long telegramUserId, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId,
-                "⚡️ " + issue.CreatorName + " назначил на вас новую задачу "
+                "⚡️ " + issue.CreatorName + " назначил на вас новую задачу " + issue.Link
                 + "\"" + issue.Subject + "\"",
                 replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);

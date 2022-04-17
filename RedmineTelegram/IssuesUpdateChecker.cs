@@ -10,14 +10,12 @@ namespace RedmineTelegram
     public class IssuesUpdateChecker
     {
         private readonly InternalDatabase _internalDatabase;
-        private readonly RedmineDatabase _redmineDatabase;
         private readonly TelegramBot _telegramBot;
 
         public IssuesUpdateChecker(InternalDatabase internalDatabase, 
-            RedmineDatabase redmineDatabase, TelegramBot telegramBot)
+            TelegramBot telegramBot)
         {
             _internalDatabase = internalDatabase;
-            _redmineDatabase = redmineDatabase;
             _telegramBot = telegramBot;
         }
 
@@ -32,12 +30,12 @@ namespace RedmineTelegram
 
             while (true)
             {
-                List<JournalItem> lastEditedJournals = _redmineDatabase.LoadLastJournalsLine(lastIssuesUpdateCheckTime);
-                List<NormalIssue> lastCreatedIssues = _redmineDatabase.LoadLastCreatedIssues(lastIssuesUpdateCheckTime);
+                List<JournalItem> lastEditedJournals = RedmineDatabase.LoadLastJournalsLine(lastIssuesUpdateCheckTime);
+                List<Issue> lastCreatedIssues = RedmineDatabase.LoadLastCreatedIssues(lastIssuesUpdateCheckTime);
 
-                foreach (NormalIssue issue in lastCreatedIssues)
+                foreach (Issue issue in lastCreatedIssues)
                 {
-                    List<long> issueRecipientsIds = _redmineDatabase.GetWatchersIdList(issue.Id);
+                    List<long> issueRecipientsIds = RedmineDatabase.GetWatchersIdList(issue.Id);
 
                     issueRecipientsIds.Remove(issue.CreatorId);
                     issueRecipientsIds.RemoveAll(id => id == issue.AssignedTo);
@@ -51,8 +49,8 @@ namespace RedmineTelegram
 
                 foreach (JournalItem journalItem in lastEditedJournals)
                 {
-                    NormalIssue issue = _redmineDatabase.GetIssueByIssueId(journalItem.IssueId);
-                    List<long> journalRecipientsIds = _redmineDatabase.GetWatchersIdList(issue.Id);
+                    Issue issue = RedmineDatabase.GetIssueByIssueId(journalItem.IssueId);
+                    List<long> journalRecipientsIds = RedmineDatabase.GetWatchersIdList(issue.Id);
 
                     journalRecipientsIds.RemoveAll(id => id == issue.CreatorId);
                     journalRecipientsIds.Add(issue.CreatorId);
@@ -71,7 +69,7 @@ namespace RedmineTelegram
             }
         }
 
-        private void SendIssueToUser(long redmineUserId, NormalIssue issue)
+        private void SendIssueToUser(long redmineUserId, Issue issue)
         {
             if (!TryGetTelegramUserId(redmineUserId, out long telegramId))
             {
@@ -88,7 +86,7 @@ namespace RedmineTelegram
             }
         }
 
-        private void SendJournalToUser(long redmineUserId, JournalItem journal, NormalIssue issue)
+        private void SendJournalToUser(long redmineUserId, JournalItem journal, Issue issue)
         {
             if (!TryGetTelegramUserId(redmineUserId, out long telegramId))
             {
@@ -128,7 +126,7 @@ namespace RedmineTelegram
 
         private bool TryGetTelegramUserId(long redmineId, out long telegramId)
         {
-            if (_redmineDatabase.TryGetTelegramUsernameByRedmineId((int)redmineId, out string username)
+            if (RedmineDatabase.TryGetTelegramUsernameByRedmineId((int)redmineId, out string username)
                 && _internalDatabase.TryGetUserTelegramIdByUsername(username, out long userId))
             {
                 telegramId = userId;

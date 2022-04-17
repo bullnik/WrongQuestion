@@ -7,10 +7,7 @@ namespace RedmineTelegram
 {
     public sealed class RedmineDatabase
     {
-        static readonly string host = "localhost";
-
-        // активные(незакрытые) задачи у типа, отсортировано от новых к старым
-        public List<NormalIssue> GetUserIssues(long userId)
+        public static List<Issue> GetUserIssues(long userId)
         {
             var table = ExecuteScript(@"
             select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id, u.lastname, u.firstname
@@ -21,22 +18,29 @@ namespace RedmineTelegram
             where i.assigned_to_id = " + userId + @" and i.created_on is not null
             and iss.is_closed = 0");
 
-
-            List<NormalIssue> a = new();
+            List<Issue> a = new();
 
             for (int i = 1; i < table.GetLength(0); i++)
             {
-                int estHours;
-                Int32.TryParse(table[i, 6].ToString(), out estHours);
+                _ = int.TryParse(table[i, 6].ToString(), out int estHours);
                 var status = table[i, 3].ToString();
                 var isClosing = CheckIsStatusClosing(status);
-                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), status, table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString(), (int)table[i, 8], (int)table[i, 9], GetLabourCostByIssueId((int)table[i, 0]), $"{table[i, 10].ToString()} {table[i, 11].ToString()}", isClosing));
+                a.Add(new Issue((int)table[i, 0], 
+                    table[i, 1].ToString(), 
+                    table[i, 2].ToString(), 
+                    status, table[i, 4].ToString(), 
+                    table[i, 5].ToString(), 
+                    estHours, table[i, 7].ToString(), 
+                    (int)table[i, 8], 
+                    (int)table[i, 9], 
+                    GetLabourCostByIssueId((int)table[i, 0]), 
+                    $"{table[i, 10]} {table[i, 11]}", isClosing));
 
             }
             return a;
         }
 
-        public bool CheckIsStatusClosing(string status)
+        public static bool CheckIsStatusClosing(string status)
         {
             var table = ExecuteScript(@$"
             select is2.is_closed 
@@ -47,7 +51,7 @@ namespace RedmineTelegram
             return stat;
         }
 
-        public List<NormalIssue> LoadLastCreatedIssues(DateTime date)
+        public static List<Issue> LoadLastCreatedIssues(DateTime date)
         {
             var strDate = date.ToString("yyyy-MM-dd HH:mm:ss");
 
@@ -59,64 +63,32 @@ namespace RedmineTelegram
             join bitnami_redmine.users u on i.author_id = u.id 
             where i.created_on >= '{strDate}'");
 
-            List<NormalIssue> a = new();
+            List<Issue> a = new();
 
             for (int i = 1; i < table.GetLength(0); i++)
             {
-                int estHours;
-                Int32.TryParse(table[i, 6].ToString(), out estHours);
+                _ = int.TryParse(table[i, 6].ToString(), out int estHours);
                 var status = table[i, 3].ToString();
                 var isClosing = CheckIsStatusClosing(status);
-                a.Add(new NormalIssue((int)table[i, 0], table[i, 1].ToString(), table[i, 2].ToString(), status, table[i, 4].ToString(), table[i, 5].ToString(), estHours, table[i, 7].ToString(), (int)table[i, 8], (int)table[i, 9], GetLabourCostByIssueId((int)table[i, 0]), $"{table[i, 10].ToString()} {table[i, 11].ToString()}", isClosing));
+                a.Add(new Issue((int)table[i, 0], 
+                    table[i, 1].ToString(), 
+                    table[i, 2].ToString(), 
+                    status, 
+                    table[i, 4].ToString(), 
+                    table[i, 5].ToString(), 
+                    estHours, 
+                    table[i, 7].ToString(), 
+                    (int)table[i, 8], 
+                    (int)table[i, 9], 
+                    GetLabourCostByIssueId((int)table[i, 0]), 
+                    $"{table[i, 10]} {table[i, 11]}", 
+                    isClosing));
 
             }
             return a;
         }
 
-        // кол-во на вход, на выход issue, сортировка по времени (updated_on), на выход count последних задач 
-        public List<Issue> LoadLastEditedIssues(int count)
-        {
-            var table = ExecuteScript(@"
-            select i.id, i.assigned_to_id, i.closed_on, i.status_id
-            from bitnami_redmine.issues i 
-            order by i.updated_on desc
-            limit " + count);
-
-            List<Issue> a = new();
-
-            for (int i = 1; i < table.GetLength(0); i++)
-            {
-                var closedOn = table[i, 2].ToString().Length;
-                var status = closedOn > 2 ? true : false;
-                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
-            }
-            return a;
-        }
-
-        public List<Issue> LoadLastEditedIssues(DateTime date)
-        {
-            var strDate = date.ToString("yyyy-MM-dd HH:mm:ss");
-
-            var table = ExecuteScript(@$"
-            select i.id, i.assigned_to_id, i.created_on 
-            from bitnami_redmine.issues i 
-            where i.updated_on >= '{strDate}'
-            order by i.updated_on desc");
-
-
-
-            List<Issue> a = new();
-
-            for (int i = 1; i < table.GetLength(0); i++)
-            {
-                var closedOn = table[i, 2].ToString().Length;
-                var status = closedOn > 2 ? true : false;
-                a.Add(new Issue((int)table[i, 0], (int)table[i, 1], status, (int)table[i, 3]));
-            }
-            return a;
-        }
-
-        public List<JournalItem> LoadLastJournalsLine(int count)
+        public static List<JournalItem> LoadLastJournalsLine(int count)
         {
             var table = ExecuteScript(@"
             select j.journalized_id, j.user_id, j.notes,
@@ -143,12 +115,19 @@ u.lastname, u.firstname
                 var oldStatus = table[i, 4].ToString();
                 var isComment = comment != "";
                 var isStatusChanged = curStatus != "";
-                a.Add(new JournalItem(issueId, (int)table[i, 1], comment, isComment, isStatusChanged, curStatus, oldStatus, $"{table[i, 5].ToString()} {table[i, 6].ToString()}"));
+                a.Add(new JournalItem(issueId, 
+                    (int)table[i, 1], 
+                    comment, 
+                    isComment, 
+                    isStatusChanged, 
+                    curStatus, 
+                    oldStatus, 
+                    $"{table[i, 5]} {table[i, 6]}"));
             }
             return a;
         }
 
-        public List<JournalItem> LoadLastJournalsLine(DateTime date)
+        public static List<JournalItem> LoadLastJournalsLine(DateTime date)
         {
             var strDate = date.ToString("yyyy-MM-dd HH:mm:ss");
 
@@ -178,12 +157,19 @@ u.lastname, u.firstname
                 var oldStatus = table[i, 4].ToString();
                 var isComment = comment != "";
                 var isStatusChanged = curStatus != "";
-                a.Add(new JournalItem(issueId, (int)table[i, 1], comment, isComment, isStatusChanged, curStatus, oldStatus, $"{table[i, 5].ToString()} {table[i, 6].ToString()}"));
+                a.Add(new JournalItem(issueId, 
+                    (int)table[i, 1], 
+                    comment, 
+                    isComment, 
+                    isStatusChanged, 
+                    curStatus, 
+                    oldStatus, 
+                    $"{table[i, 5]} {table[i, 6]}"));
             }
             return a;
         }
 
-        public string GetStatusNameByIssueId(long issueId) 
+        public static string GetStatusNameByIssueId(long issueId) 
         {
             var table = ExecuteScript(@$"
             select iss.name
@@ -195,7 +181,7 @@ u.lastname, u.firstname
             return table[1, 0].ToString();
         }
 
-        public NormalIssue GetIssueByIssueId(long issueId)
+        public static Issue GetIssueByIssueId(long issueId)
         {
             var table = ExecuteScript(@"
             select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id, u.lastname, u.firstname
@@ -205,15 +191,26 @@ u.lastname, u.firstname
             join bitnami_redmine.users u on i.author_id = u.id  
             where i.id  =  " + issueId);
 
-            int estHours;
-            Int32.TryParse(table[1, 6].ToString(), out estHours);
+            _ = int.TryParse(table[1, 6].ToString(), out int estHours);
             var status = table[1, 3].ToString();
             var isClosing = CheckIsStatusClosing(status);
-            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), status, table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9], GetLabourCostByIssueId((int)table[1, 0]), $"{table[1, 10].ToString()} {table[1, 11].ToString()}", isClosing);
+            return new Issue((int)table[1, 0], 
+                table[1, 1].ToString(), 
+                table[1, 2].ToString(), 
+                status, 
+                table[1, 4].ToString(), 
+                table[1, 5].ToString(), 
+                estHours, 
+                table[1, 7].ToString(), 
+                (int)table[1, 8], 
+                (int)table[1, 9], 
+                GetLabourCostByIssueId((int)table[1, 0]), 
+                $"{table[1, 10]} {table[1, 11]}", 
+                isClosing);
 
         }
 
-        public List<string> GetStatusesList() //возвращает список всех статусов
+        public static List<string> GetStatusesList() //возвращает список всех статусов
         {
             var list = new List<string>();
             var table = ExecuteScript(@"
@@ -226,7 +223,7 @@ u.lastname, u.firstname
             return list;
         }
 
-        public int GetStatusIdByName(string statusName)
+        public static int GetStatusIdByName(string statusName)
         {
             var table = ExecuteScript(@"
             select is2.id
@@ -236,7 +233,7 @@ u.lastname, u.firstname
             return (int)table[1, 0];
         }
 
-        public int GetRedmineUserIdByTelegram(string tgId)
+        public static int GetRedmineUserIdByTelegram(string tgId)
         {
             var table = ExecuteScript(@"
             select cv.customized_id 
@@ -248,7 +245,7 @@ u.lastname, u.firstname
             return (int)table[1, 0];
         }
 
-        public double GetLabourCostByIssueId(long issueId)
+        public static double GetLabourCostByIssueId(long issueId)
         {
             var table = ExecuteScript(@"
             select sum(t.hours)
@@ -260,7 +257,7 @@ u.lastname, u.firstname
             return (double)table[1, 0];
         }
 
-        public bool ChangeIssueStatus(long issueId, long statusId, string updTime) //проверка на то что статус есть, да и на айди задачи наверн тоже
+        public static bool ChangeIssueStatus(long issueId, long statusId, string updTime) //проверка на то что статус есть, да и на айди задачи наверн тоже
         {
             var check = ExecuteScript(@"
             select i.id 
@@ -270,14 +267,12 @@ u.lastname, u.firstname
 
             if (check.GetLength(0) == 1)
                 return false;
-
-            var table = ExecuteScript(@$"
+            _ = ExecuteScript(@$"
             update bitnami_redmine.issues i
             join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
             set i.status_id = {statusId} 
             where i.id = {issueId}");
-
-            var ttable = ExecuteScript(@$"
+            _ = ExecuteScript(@$"
             update bitnami_redmine.issues i
             join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
             set i.updated_on = cast('{updTime}' as datetime)
@@ -296,27 +291,25 @@ u.lastname, u.firstname
         //    + " and iss.is_closed = 0");
         //}
 
-        public void ChangeLaborCost(long issueId, int hours, string comment, string tgName)
+        public static void ChangeLaborCost(long issueId, int hours, string comment, string tgName)
         {
             TryGetRedmineUserIdByTelegram(tgName, out long userId);
-
-            var table = ExecuteScript(@"
+            _ = ExecuteScript(@"
             insert into bitnami_redmine.time_entries (user_id, project_id, hours, activity_id, spent_on , tyear, tmonth, tweek, created_on, updated_on, author_id, issue_id, comments)"
-+ $" values({userId}, {GetProjectIdByIssueId(issueId)}, {hours}, 9, now(), year(now()), month(now()), week(now()), now(), now(), {userId}, {issueId}, '{comment}')") ;
++ $" values({userId}, {GetProjectIdByIssueId(issueId)}, {hours}, 9, now(), year(now()), month(now()), week(now()), now(), now(), {userId}, {issueId}, '{comment}')");
 
         }
 
-        public void AddComment(long issueId, string comment, string tgName)
+        public static void AddComment(long issueId, string comment, string tgName)
         {
             TryGetRedmineUserIdByTelegram(tgName, out long userId);
-
-            var table = ExecuteScript(@$"
+            _ = ExecuteScript(@$"
             insert into bitnami_redmine.journals (journalized_id, journalized_type, user_id, notes, created_on, private_notes)
 values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
 
         }
 
-        public int GetProjectIdByIssueId(long issueId)
+        public static int GetProjectIdByIssueId(long issueId)
         {
             var table = ExecuteScript(@"
             select i.project_id
@@ -326,7 +319,7 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             return (int)table[1, 0];
         }
 
-        public bool TryGetTelegramUsernameByRedmineId(int assignedTo, out string username)
+        public static bool TryGetTelegramUsernameByRedmineId(int assignedTo, out string username)
         {
             var table = ExecuteScript(@"
             select cv.value 
@@ -343,7 +336,7 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             return true;
         }
 
-        public List<long> GetWatchersIdList(long issueId)
+        public static List<long> GetWatchersIdList(long issueId)
         {
             var list = new List<long>();
             var table = ExecuteScript(@$"
@@ -357,7 +350,7 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             return list;
         }
 
-        public bool TryGetRedmineUserIdByTelegram(string telegramUsername, out long redmineUserId)
+        public static bool TryGetRedmineUserIdByTelegram(string telegramUsername, out long redmineUserId)
         {
             var table = ExecuteScript(@"
             select cv.customized_id 
@@ -374,7 +367,7 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             return true;
         }
 
-        public NormalIssue GetNormalIssue(int issueId) //
+        public static Issue GetNormalIssue(int issueId) //
         {
             var table = ExecuteScript(@"
             select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id, u.lastname, u.firstname
@@ -383,14 +376,24 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             join bitnami_redmine.enumerations e on i.priority_id = e.id 
             join bitnami_redmine.users u on i.author_id = u.id 
             where i.id = " + issueId);
-            int estHours;
-            Int32.TryParse(table[1, 6].ToString(), out estHours);
+            _ = int.TryParse(table[1, 6].ToString(), out int estHours);
             var status = table[1, 3].ToString();
             var isClosing = CheckIsStatusClosing(status);
-            return new NormalIssue((int)table[1, 0], table[1, 1].ToString(), table[1, 2].ToString(), table[1, 3].ToString(), table[1, 4].ToString(), table[1, 5].ToString(), estHours, table[1, 7].ToString(), (int)table[1, 8], (int)table[1, 9], GetLabourCostByIssueId((int)table[1, 0]), $"{table[1, 10].ToString()} {table[1, 11].ToString()}", isClosing);
+            return new Issue((int)table[1, 0], 
+                table[1, 1].ToString(), 
+                table[1, 2].ToString(), 
+                table[1, 3].ToString(), 
+                table[1, 4].ToString(), 
+                table[1, 5].ToString(), 
+                estHours, table[1, 7].ToString(), 
+                (int)table[1, 8], 
+                (int)table[1, 9], 
+                GetLabourCostByIssueId((int)table[1, 0]), 
+                $"{table[1, 10]} {table[1, 11]}", 
+                isClosing);
         }
 
-        public bool CheckIsUserAssignedToIssue(long issueId, long userId)
+        public static bool CheckIsUserAssignedToIssue(long issueId, long userId)
         {
             var table = ExecuteScript(@$"
             select i.assigned_to_id 
@@ -403,35 +406,31 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             return true;
         }
 
-        public bool AddLaborCost(long issueId, float hours, string comment, long redmineUserId) 
+        public static bool AddLaborCost(long issueId, float hours, string comment, long redmineUserId) 
         {
-
-            var table = ExecuteScript(@"
+            _ = ExecuteScript(@"
             insert into bitnami_redmine.time_entries (user_id, project_id, hours, activity_id, spent_on , tyear, tmonth, tweek, created_on, updated_on, author_id, issue_id, comments)"
 + $" values({redmineUserId}, {GetProjectIdByIssueId(issueId)}, {hours.ToString().Replace(',', '.')}, 9, now(), year(now()), month(now()), week(now()), now(), now(), {redmineUserId}, {issueId}, '{comment}')");
 
             return true;
         }
 
-        public bool AddComment(long issueId, string comment, long redmineUserId)
+        public static bool AddComment(long issueId, string comment, long redmineUserId)
         {
-            var table = ExecuteScript(@$"
+            _ = ExecuteScript(@$"
             insert into bitnami_redmine.journals (journalized_id, journalized_type, user_id, notes, created_on, private_notes)
 values({issueId}, 'Issue', {redmineUserId}, '{comment}', now(), 0)");
 
             return true;
         }
 
-        public bool ChangeStatus(long issueId, long statusId, long redmineUserId) 
+        public static bool ChangeStatus(long issueId, long statusId, long redmineUserId) 
         {
             var strDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
-            var fTable = ExecuteScript(@$"
+            _ = ExecuteScript(@$"
             insert into bitnami_redmine.journals (journalized_id, journalized_type, user_id, notes, created_on, private_notes)
 values({issueId}, 'Issue', {redmineUserId}, '', cast('{strDate}' as datetime), 0)");
-
-
-            var sTable = ExecuteScript(@$"
+            _ = ExecuteScript(@$"
             insert into bitnami_redmine.journal_details (journal_id, property, prop_key, old_value, value)
 values((select j.id
 from bitnami_redmine.journals j 
@@ -443,7 +442,7 @@ limit 1), 'attr', 'status_id', {GetStatusIdByName(GetStatusNameByIssueId(issueId
             return true;
         }
 
-        private object[,] ExecuteScript(string script)
+        private static object[,] ExecuteScript(string script)
         {
             MySqlConnection suka = DBUtils.GetDBConnection();
             suka.Open();

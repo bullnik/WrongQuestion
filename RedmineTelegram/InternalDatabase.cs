@@ -113,32 +113,6 @@ namespace RedmineTelegram
             return false;
         }
 
-        public void InsertOrUpdateIssue(Issue issue)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            SqliteCommand delCommand = connection.CreateCommand();
-            delCommand.CommandText =
-                @"
-                    DELETE FROM Issues
-                    WHERE Id == $issueId;
-                ";
-            delCommand.Parameters.AddWithValue("$issueId", issue.Id);
-            delCommand.ExecuteNonQuery();
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText =
-                @"
-                    INSERT INTO Issues (Id, Closed, AssignedTo, Status)
-                        VALUES ($id, $closed, $assignedTo, $status)
-                ";
-            command.Parameters.AddWithValue("$id", issue.Id);
-            command.Parameters.AddWithValue("$closed", issue.IsClosed ? 1 : 0);
-            command.Parameters.AddWithValue("$assignedTo", issue.AssignedTo);
-            command.Parameters.AddWithValue("$status", issue.Status);
-            command.ExecuteNonQuery();
-            connection.Close();
-        }
-
         public bool TryGetUserTelegramIdByUsername(string telegramUsername, out long telegramUserId)
         {
             using var connection = new SqliteConnection(_connectionString);
@@ -158,38 +132,6 @@ namespace RedmineTelegram
                 connection.Close();
                 return true;
             }
-            connection.Close();
-            return false;
-        }
-
-        public bool TryGetIssueById(int id, out Issue issue)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
-                SELECT * 
-                FROM Issues
-                WHERE Id == $id
-            ";
-            command.Parameters.AddWithValue("$id", id);
-            var data = command.ExecuteReader();
-            int issueId = 0;
-            int isClosed = 0;
-            int assignedTo = 0;
-            int status = 0;
-            data.Read();
-            if (data.HasRows)
-            {
-                issueId = data.GetInt32(0);
-                isClosed = data.GetInt32(1);
-                assignedTo = data.GetInt32(2);
-                status = data.GetInt32(3);
-                issue = new Issue(issueId, assignedTo, isClosed > 0, status);
-                connection.Close();
-                return true;
-            }
-            issue = new Issue(issueId, assignedTo, isClosed > 0, status);
             connection.Close();
             return false;
         }

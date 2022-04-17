@@ -7,7 +7,7 @@ using Telegram.Bot.Types.Enums;
 
 namespace RedmineTelegram
 {
-    sealed public class TelegramBot
+    public sealed class TelegramBot
     {
         private readonly TelegramBotClient _bot;
         //Token for bot Jijoba @jijoba_bot:
@@ -82,16 +82,16 @@ namespace RedmineTelegram
                 string comment = userMessage[parts[0].Length..];
                 if (float.TryParse(parts[0], out float laborCost))
                 {
-                    if (_redmineAccessController.AddLaborCost(changedIssueId, laborCost, comment, redmineUserId))
+                    if (RedmineAccessController.AddLaborCost(changedIssueId, laborCost, comment, redmineUserId))
                     {
                         await _bot.SendTextMessageAsync(telegramUserId, "✅ <b>Трудозатраты добавлены</b>",
-                            replyMarkup: IssuesWatchKeyboardMarkup,
+                            replyMarkup: ReplyMarkups.WatchIssues,
                             parseMode: ParseMode.Html);
                     }
                     else
                     {
                         await _bot.SendTextMessageAsync(telegramUserId, "❌ <b>Произошла ошибка</b>",
-                            replyMarkup: IssuesWatchKeyboardMarkup,
+                            replyMarkup: ReplyMarkups.WatchIssues,
                             parseMode: ParseMode.Html);
                     }
                     _redmineAccessController.ResetExpectedActionAndIssueByTelegramUserId(telegramUserId);
@@ -99,21 +99,21 @@ namespace RedmineTelegram
                 else
                 {
                     await _bot.SendTextMessageAsync(telegramUserId, "❌ <b>Неверный формат времени</b>",
-                        replyMarkup: CancelKeyboardMarkup, parseMode: ParseMode.Html);
+                        replyMarkup: ReplyMarkups.Cancel, parseMode: ParseMode.Html);
                 }
             }
             else if (expectedAction == ExpectedAction.WaitForComment)
             {
-                if (_redmineAccessController.AddComment(changedIssueId, userMessage, redmineUserId))
+                if (RedmineAccessController.AddComment(changedIssueId, userMessage, redmineUserId))
                 {
                     await _bot.SendTextMessageAsync(telegramUserId, "✅ <b>Комментарий добавлен</b>",
-                        replyMarkup: IssuesWatchKeyboardMarkup,
+                        replyMarkup: ReplyMarkups.WatchIssues,
                         parseMode: ParseMode.Html);
                 }
                 else
                 {
                     await _bot.SendTextMessageAsync(telegramUserId, "❌ <b>Произошла ошибка</b>",
-                        replyMarkup: IssuesWatchKeyboardMarkup,
+                        replyMarkup: ReplyMarkups.WatchIssues,
                         parseMode: ParseMode.Html);
                 }
                 _redmineAccessController.ResetExpectedActionAndIssueByTelegramUserId(telegramUserId);
@@ -131,110 +131,95 @@ namespace RedmineTelegram
                 return;
             }
 
-            string[] callbackData = e.CallbackQuery.Data.Split(' ');
-            string command = callbackData[0];
+            CallbackData callbackData = CallbackData.GetFromString(e.CallbackQuery.Data);
 
-            SwitchButton(telegramUsername, telegramUserId, callbackData, command, redmineUserId);
+            SwitchCallbackData(telegramUserId, redmineUserId, callbackData);
         }
 
-        private async void SwitchButton(string telegramUsername, long telegramUserId, 
-            string[] callbackData, string command, long redmineUserId)
+        private async void SwitchCallbackData(long telegramUserId, long redmineUserId, CallbackData callbackData)
         {
-            if (command == "WatchIssues")
+            CallbackDataCommand command = callbackData.Command;
+
+            if (command == CallbackDataCommand.ShowIssuesList)
             {
-                List<NormalIssue> tasks = _redmineAccessController.GetUserIssuesByRedmineUserId(redmineUserId);
-                ShowIssues(telegramUserId, tasks);
+                List<Issue> tasks = RedmineAccessController.GetUserIssuesByRedmineUserId(redmineUserId);
+                ShowIssuesList(telegramUserId, tasks);
             }
-            else if (command == "WatchIssueWithoutKeyboardMarkup")
+            else if (command == CallbackDataCommand.ShowIssueWithoutKeyboardMarkup)
             {
-                long issueId = long.Parse(callbackData[1]);
-                NormalIssue issue = _redmineAccessController.GetIssueByIssueId(issueId);
+                Issue issue = RedmineAccessController.GetIssueByIssueId(callbackData.TargetIssueId);
                 SendIssueWithoutEditingMarkup(telegramUserId, issue);
             }
-            else if (command == "WatchIssue")
+            else if (command == CallbackDataCommand.ShowIssue)
             {
-                long issueId = long.Parse(callbackData[1]);
-                NormalIssue issue = _redmineAccessController.GetIssueByIssueId(issueId);
+                Issue issue = RedmineAccessController.GetIssueByIssueId(callbackData.TargetIssueId);
                 SendIssueWithEditingMarkup(telegramUserId, issue);
             }
-            else if (command == "AddComment")
+            else if (command == CallbackDataCommand.AddComment)
             {
                 _redmineAccessController.ChangeExpectedActionAndIssueByTelegramUserId(
-                    ExpectedAction.WaitForComment, long.Parse(callbackData[1]), telegramUserId);
+                    ExpectedAction.WaitForComment, callbackData.TargetIssueId, telegramUserId);
                 await _bot.SendTextMessageAsync(telegramUserId, "📝 Введите комментарий",
-                    replyMarkup: CancelKeyboardMarkup, parseMode: ParseMode.Html);
+                    replyMarkup: ReplyMarkups.Cancel, parseMode: ParseMode.Html);
             }
-            else if (command == "ChangeStatus")
+            else if (command == CallbackDataCommand.ChangeStatus)
             {
-                if (callbackData.Length < 3)
-                {
-                    return;
-                }
-                string status = "";
-                if (callbackData.Length >= 2)
-                {
-                    for (int i = 1; i < callbackData.Length - 1; i++)
-                    {
-                        status += callbackData[i] + " ";
-                    }
-                    status = status[0..^1];
-                }
-                long issueId = long.Parse(callbackData[^1]);
+                string status = callbackData.AdditionalData;
+                long issueId = callbackData.TargetIssueId;
 
-                if (_redmineAccessController.ChangeStatus(issueId, status, redmineUserId))
+                if (RedmineAccessController.ChangeStatus(issueId, status, redmineUserId))
                 {
                     await _bot.SendTextMessageAsync(telegramUserId,
                         "✅ <b>Статус задачи изменен</b>", 
-                        replyMarkup: IssuesWatchKeyboardMarkup,
+                        replyMarkup: ReplyMarkups.WatchIssues,
                         parseMode: ParseMode.Html);
                 }
                 else
                 {
                     await _bot.SendTextMessageAsync(telegramUserId,
                         "❌ <b>Произошла ошибка при изменении статуса</b>",
-                        replyMarkup: IssuesWatchKeyboardMarkup, 
+                        replyMarkup: ReplyMarkups.WatchIssues, 
                         parseMode: ParseMode.Html);
                 }
             }
-            else if (command == "ViewStatus")
+            else if (command == CallbackDataCommand.ShowStatuses)
             {
-                long issueId = long.Parse(callbackData[1]);
+                long issueId = callbackData.TargetIssueId;
                 _redmineAccessController.ChangeExpectedActionAndIssueByTelegramUserId(
                     ExpectedAction.WaitForNewStatusId, issueId, telegramUserId);
                 await _bot.SendTextMessageAsync(telegramUserId, "📝 Выберите новый статус задачи",
-                    replyMarkup: GetStatusButtons(issueId), parseMode: ParseMode.Html);
+                    replyMarkup: ReplyMarkups.GetStatusButtons(issueId), parseMode: ParseMode.Html);
             }
-            else if (command == "ChangeLabor")
+            else if (command == CallbackDataCommand.ChangeLabor)
             {
                 await _bot.SendTextMessageAsync(telegramUserId, "📝 Введите трудозатраты (в часах)"
                     + '\n' + "И на что они потрачены, через пробел" + '\n' + "Пример: 4,5 работал",
-                    replyMarkup: CancelKeyboardMarkup, parseMode: ParseMode.Html);
-                long issueId = long.Parse(callbackData[1]);
+                    replyMarkup: ReplyMarkups.Cancel, parseMode: ParseMode.Html);
                 _redmineAccessController.ChangeExpectedActionAndIssueByTelegramUserId(
-                    ExpectedAction.WaitForLaborCosts, issueId, telegramUserId);
+                    ExpectedAction.WaitForLaborCosts, callbackData.TargetIssueId, telegramUserId);
             }
-            else if (command == "Cancel")
+            else if (command == CallbackDataCommand.CancelOperation)
             {
                 _redmineAccessController.ResetExpectedActionAndIssueByTelegramUserId(telegramUserId);
                 ShowMenu(telegramUserId);
             }
         }
 
-        private async void SendIssueWithEditingMarkup(long chatId, NormalIssue issue)
+        private async void SendIssueWithEditingMarkup(long chatId, Issue issue)
         {
             await _bot.SendTextMessageAsync(chatId, GetIssueInfo(issue), 
-                replyMarkup: GetIssueEditingMarkup(issue.Id),
+                replyMarkup: ReplyMarkups.GetIssueEdit(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
         }
 
-        private async void SendIssueWithoutEditingMarkup(long telegramUserId, NormalIssue issue)
+        private async void SendIssueWithoutEditingMarkup(long telegramUserId, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, 
                 GetIssueInfo(issue),
                 parseMode: ParseMode.MarkdownV2);
         }
 
-        private static string GetIssueInfo(NormalIssue issue)
+        private static string GetIssueInfo(Issue issue)
         {
             return "⚡️ Информация о задаче" + '\n'
                 + "Статус: " + issue.Status + '\n'
@@ -245,7 +230,7 @@ namespace RedmineTelegram
                 + "Назначена с " + issue.CreatedOn.Replace('.', '/') + '\n';
         }
 
-        private async void ShowIssues(long chatId, List<NormalIssue> issues)
+        private async void ShowIssuesList(long chatId, List<Issue> issues)
         {
             if (issues.Count == 0)
             {
@@ -254,183 +239,72 @@ namespace RedmineTelegram
             }
 
             await _bot.SendTextMessageAsync(chatId, "⚡️ <b>Ваши задачи: </b>",
-                replyMarkup: GetIssuesListKeyboardMarkup(issues), parseMode: ParseMode.Html);
+                replyMarkup: ReplyMarkups.GetIssuesSubjectWithWatchIssueCallbackData(issues), parseMode: ParseMode.Html);
         }
 
         private async void ShowMenu(long chatId)
         {
             await _bot.SendTextMessageAsync(chatId, "Вы успешно авторизованы в Redmine.",
-                replyMarkup: IssuesWatchKeyboardMarkup);
-        }
-
-        private static InlineKeyboardMarkup GetIssuesListKeyboardMarkup(List<NormalIssue> issues)
-        {
-            List<InlineKeyboardButton[]> keyboardButtons = new();
-
-            foreach (NormalIssue issue in issues)
-            {
-                keyboardButtons.Add(new InlineKeyboardButton[]
-                {
-                    InlineKeyboardButton.WithCallbackData(issue.Subject,
-                    "WatchIssue " + issue.Id.ToString())
-                });
-            }
-
-            return new(keyboardButtons.ToArray());
-        }
-
-        private static InlineKeyboardMarkup GetIssueWithoutReplyKeyboardMarkup(long issueId)
-        {
-            return new InlineKeyboardMarkup(new[] 
-            { 
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("Информация о задаче", 
-                    "WatchIssueWithoutKeyboardMarkup " + issueId)
-                }
-            });
-        }
-
-        private static InlineKeyboardMarkup GetIssueWithReplyKeyboardMarkup(long issueId)
-        {
-            return new InlineKeyboardMarkup(new[]
-            {
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("Информация о задаче",
-                    "WatchIssue " + issueId)
-                }
-            });
-        }
-
-        private static InlineKeyboardMarkup GetIssueEditingMarkup(long issueId)
-        {
-            return new InlineKeyboardMarkup(new[]
-            {
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("Поменять статус", "ViewStatus " + issueId.ToString()),
-                },
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("Указать трудозатраты", "ChangeLabor " + issueId.ToString()),
-                },
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("Добавить комментарий", "AddComment " + issueId.ToString())
-                }
-            });
-        }
-
-        private static readonly InlineKeyboardMarkup CancelKeyboardMarkup = new(new[] 
-        {
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("Отменить операцию", "Cancel")
-            }
-        });
-
-        private static readonly InlineKeyboardMarkup IssuesWatchKeyboardMarkup = new(new[] 
-        {
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("Посмотреть мои задачи", "WatchIssues")
-            }
-        });
-
-        private InlineKeyboardMarkup GetStatusButtons(long issueId)
-        {
-            List<InlineKeyboardButton[]> lines = new();
-
-            List<string> line = new();
-            foreach (string status in _redmineAccessController.GetStatusesList())
-            {
-                line.Add(status);
-
-                if (line.Count == 2)
-                {
-                    lines.Add(new[] 
-                    { 
-                        InlineKeyboardButton.WithCallbackData(line[0], "ChangeStatus " + line[0] + " " + issueId),
-                        InlineKeyboardButton.WithCallbackData(line[1], "ChangeStatus " + line[1] + " " + issueId),
-                    });
-                    line = new();
-                }
-            }
-
-            if (line.Count == 1)
-            {
-                lines.Add(new[]
-                {
-                    InlineKeyboardButton.WithCallbackData(line[0], "ChangeStatus " + line[0] + " " + issueId)
-                });
-            }
-
-            lines.Add(new[]
-            {
-                InlineKeyboardButton.WithCallbackData("Отменить операцию", "Cancel")
-            });
-
-            return new InlineKeyboardMarkup(lines.ToArray());
+                replyMarkup: ReplyMarkups.WatchIssues);
         }
 
         internal async void SendStatusChangeNotificationToWatcherOrCreator(long telegramUserId, 
-            JournalItem journal, NormalIssue issue)
+            JournalItem journal, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\"" 
                 + " с \"" + journal.OldIssueStatus + "\"" 
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
-                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
         }
 
         internal async void SendStatusChangeNotificationToAssignedUser(long telegramUserId, 
-            JournalItem journal, NormalIssue issue)
+            JournalItem journal, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " изменил статус задачи \"" + issue.Subject + "\""
                 + " с \"" + journal.OldIssueStatus + "\""
                 + " на " + "\"" + journal.CurrentIssueStatus + "\"",
-                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
         }
 
         internal async void SendCommentNotificationToWatcherOrCreator(long telegramUserId, 
-            JournalItem journal, NormalIssue issue)
+            JournalItem journal, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
                 + journal.Comment,
-                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
         }
 
         internal async void SendCommentNotificationToAssignedUser(long telegramUserId, 
-            JournalItem journal, NormalIssue issue)
+            JournalItem journal, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId, "⚡️ "
                 + journal.UserName + " добавил комментарий к задаче \"" + issue.Subject + "\":" + "\n"
                 + journal.Comment,
-                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
         }
 
-        internal async void SendNewIssueToWatcher(long telegramUserId, NormalIssue issue)
+        internal async void SendNewIssueToWatcher(long telegramUserId, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId,
                 "⚡️ " + issue.CreatorName + " назначил вас наблюдалетем за задачей "
                 + "\"" + issue.Subject + "\"",
-                replyMarkup: GetIssueWithoutReplyKeyboardMarkup(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
         }
 
-        internal async void SendNewIssueToAssignedUser(long telegramUserId, NormalIssue issue)
+        internal async void SendNewIssueToAssignedUser(long telegramUserId, Issue issue)
         {
             await _bot.SendTextMessageAsync(telegramUserId,
                 "⚡️ " + issue.CreatorName + " назначил на вас новую задачу "
                 + "\"" + issue.Subject + "\"",
-                replyMarkup: GetIssueWithReplyKeyboardMarkup(issue.Id),
+                replyMarkup: ReplyMarkups.GetShowInfoWithWatchIssueCallbackData(issue.Id),
                 parseMode: ParseMode.MarkdownV2);
         }
     }

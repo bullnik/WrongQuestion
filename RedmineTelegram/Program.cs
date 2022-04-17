@@ -9,14 +9,13 @@ namespace RedmineTelegram
         static void Main()
         {
             InternalDatabase internalDatabase = new();
-            RedmineDatabase redmineDatabase = new();
 
-            RedmineAccessController redmineAccessController = new(internalDatabase, redmineDatabase);
+            RedmineAccessController redmineAccessController = new(internalDatabase);
 
             TelegramBot telegramBot = new(redmineAccessController);
             telegramBot.StartReceiving();
 
-            IssuesUpdateChecker issuesUpdateChecker = new(internalDatabase, redmineDatabase, telegramBot);
+            IssuesUpdateChecker issuesUpdateChecker = new(internalDatabase, telegramBot);
             issuesUpdateChecker.StartChecking();
 
             while (true)

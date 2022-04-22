@@ -14,6 +14,5 @@ namespace RedmineTelegram
 
             return DBMySQLUtils.GetDBConnection(host, port, database, username, password);
         }
-
     }
 }

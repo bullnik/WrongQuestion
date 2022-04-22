@@ -7,6 +7,11 @@ namespace RedmineTelegram
 {
     public sealed class RedmineDatabase
     {
+        public static bool TryInitialize(Configuration configuration)
+        {
+            return false;
+        }
+
         public static List<Issue> GetUserIssues(long userId)
         {
             var table = ExecuteScript(@"
@@ -210,7 +215,7 @@ u.lastname, u.firstname
 
         }
 
-        public static List<string> GetStatusesList() //возвращает список всех статусов
+        public static List<string> GetStatusesList()
         {
             var list = new List<string>();
             var table = ExecuteScript(@"
@@ -257,7 +262,7 @@ u.lastname, u.firstname
             return (double)table[1, 0];
         }
 
-        public static bool ChangeIssueStatus(long issueId, long statusId, string updTime) //проверка на то что статус есть, да и на айди задачи наверн тоже
+        public static bool ChangeIssueStatus(long issueId, long statusId, string updTime)
         {
             var check = ExecuteScript(@"
             select i.id 
@@ -280,16 +285,6 @@ u.lastname, u.firstname
 
             return true;
         }
-
-        //public void ChangeLaborCost(long issueId, int laborCost)
-        //{
-        //    var table = ExecuteScript(@"
-        //    update bitnami_redmine.issues i
-        //    join bitnami_redmine.issue_statuses iss on iss.id = i.status_id
-        //    set i.estimated_hours = " + laborCost +
-        //    " where i.id = " + issueId
-        //    + " and iss.is_closed = 0");
-        //}
 
         public static void ChangeLaborCost(long issueId, int hours, string comment, string tgName)
         {
@@ -367,7 +362,7 @@ values({issueId}, 'Issue', {userId}, '{comment}', now(), 0)");
             return true;
         }
 
-        public static Issue GetNormalIssue(int issueId) //
+        public static Issue GetNormalIssue(int issueId)
         {
             var table = ExecuteScript(@"
             select i.id, i.subject, i.description, iss.name, e.name , i.created_on, i.estimated_hours, i.closed_on, i.assigned_to_id, i.author_id, u.lastname, u.firstname

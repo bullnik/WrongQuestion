@@ -7,28 +7,30 @@ using System.Threading.Tasks;
 
 namespace RedmineTelegram
 {
-    public class IssuesUpdateChecker
+    public class IssuesUpdatesChecker
     {
         private readonly InternalDatabase _internalDatabase;
         private readonly TelegramBot _telegramBot;
+        private CancellationToken _cancellationToken;
 
-        public IssuesUpdateChecker(InternalDatabase internalDatabase, 
+        public IssuesUpdatesChecker(InternalDatabase internalDatabase, 
             TelegramBot telegramBot)
         {
             _internalDatabase = internalDatabase;
             _telegramBot = telegramBot;
         }
 
-        public async void StartChecking()
+        public void StartChecking(CancellationToken cancellationToken = default)
         {
-            await Task.Run(() => Check());
+            _cancellationToken = cancellationToken;
+            Task.Run(() => Checking(), cancellationToken);
         }
 
-        private void Check()
+        private void Checking()
         {
             DateTime lastIssuesUpdateCheckTime = DateTime.Now;
 
-            while (true)
+            while (!_cancellationToken.IsCancellationRequested)
             {
                 List<JournalItem> lastEditedJournals = RedmineDatabase.LoadLastJournalsLine(lastIssuesUpdateCheckTime);
                 List<Issue> lastCreatedIssues = RedmineDatabase.LoadLastCreatedIssues(lastIssuesUpdateCheckTime);
@@ -41,9 +43,9 @@ namespace RedmineTelegram
                     issueRecipientsIds.RemoveAll(id => id == issue.AssignedTo);
                     issueRecipientsIds.Add(issue.AssignedTo);
 
-                    foreach (int watcherRedmineId in issueRecipientsIds)
+                    foreach (int recipientRedmineId in issueRecipientsIds)
                     {
-                        SendIssueToUser(watcherRedmineId, issue);
+                        SendNewIssueNotificationToUser(recipientRedmineId, issue);
                     }
                 }
 
@@ -58,9 +60,9 @@ namespace RedmineTelegram
                     journalRecipientsIds.Add(issue.AssignedTo);
                     journalRecipientsIds.RemoveAll(id => id == journalItem.UserId);
 
-                    foreach (int watcherRedmineId in journalRecipientsIds)
+                    foreach (int recipientRedmineId in journalRecipientsIds)
                     {
-                        SendJournalToUser(watcherRedmineId, journalItem, issue);
+                        SendNewJournalNotificationToUser(recipientRedmineId, journalItem, issue);
                     }
                 }
 
@@ -69,58 +71,46 @@ namespace RedmineTelegram
             }
         }
 
-        private void SendIssueToUser(long redmineUserId, Issue issue)
+        private void SendNewIssueNotificationToUser(long redmineUserId, Issue issue)
         {
             if (!TryGetTelegramUserId(redmineUserId, out long telegramId))
             {
                 return;
             }
 
-            if (issue.AssignedTo == redmineUserId)
+            UserStatus userStatus = GetUserStatus(issue, redmineUserId);
+            _telegramBot.SendNewIssueNotification(telegramId, issue, userStatus);
+        }
+
+        private void SendNewJournalNotificationToUser(long redmineUserId, JournalItem journal, Issue issue)
+        {
+            if (!TryGetTelegramUserId(redmineUserId, out long telegramId))
             {
-                _telegramBot.SendNewIssueToAssignedUser(telegramId, issue);
+                return;
             }
-            else
+
+            UserStatus userStatus = GetUserStatus(issue, redmineUserId);
+            if (journal.IsComment && userStatus != UserStatus.IssueWatcher
+                || (journal.IsIssueStatusChange && userStatus != UserStatus.IssueWatcher)
+                || (journal.IsIssueStatusChange && issue.IsClosed))
             {
-                _telegramBot.SendNewIssueToWatcher(telegramId, issue);
+                _telegramBot.SendCommentNotification(telegramId, journal, issue, userStatus);
             }
         }
 
-        private void SendJournalToUser(long redmineUserId, JournalItem journal, Issue issue)
+        private static UserStatus GetUserStatus(Issue issue, long redmineUserId)
         {
-            if (!TryGetTelegramUserId(redmineUserId, out long telegramId))
+            if (redmineUserId == issue.CreatorId)
             {
-                return;
+                return UserStatus.IssueCreator;
             }
-            bool isSendingToAssigned = issue.AssignedTo == redmineUserId;
-
-            if (journal.IsComment)
+            else if (redmineUserId == issue.AssignedTo)
             {
-                if (isSendingToAssigned)
-                {
-                    _telegramBot.SendCommentNotificationToAssignedUser(telegramId, journal, issue);
-                }
-                else
-                {
-                    if (redmineUserId == issue.CreatorId)
-                    {
-                        _telegramBot.SendCommentNotificationToWatcherOrCreator(telegramId, journal, issue);
-                    }
-                }
+                return UserStatus.AssignedToIssue;
             }
-            else if (journal.IsIssueStatusChange)
+            else
             {
-                if (isSendingToAssigned)
-                {
-                    _telegramBot.SendStatusChangeNotificationToAssignedUser(telegramId, journal, issue);
-                }
-                else
-                {
-                    if (redmineUserId == issue.CreatorId || issue.IsClosed)
-                    {
-                        _telegramBot.SendStatusChangeNotificationToWatcherOrCreator(telegramId, journal, issue);
-                    }
-                }
+                return UserStatus.IssueWatcher;
             }
         }
 

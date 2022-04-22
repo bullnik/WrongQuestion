@@ -42,7 +42,7 @@ namespace RedmineTelegram
             }
             additionalData += parts[^1];
 
-            return new(command, targetIssueId, additionalData.ToString());
+            return new(command, targetIssueId, additionalData);
         }
 
         public static bool TryGetFromString(string stringCallbackData, out CallbackData callbackData)

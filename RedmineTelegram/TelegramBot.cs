@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types.Enums;
@@ -9,29 +10,22 @@ namespace RedmineTelegram
     public sealed class TelegramBot
     {
         private readonly TelegramBotClient _bot;
-        //Token for bot Jijoba @jijoba_bot:
-        private static string Token => "2098827232:AAFu37Kco2dtw0vFRkNo0DYqKww68hY5Dh0";
+        private readonly string Token;
         private readonly RedmineAccessController _redmineAccessController;
 
-        public TelegramBot(RedmineAccessController redmineAccessController)
+        public TelegramBot(RedmineAccessController redmineAccessController,
+            Configuration configuration)
         {
+            Token = configuration.TelegramBotToken;
             _redmineAccessController = redmineAccessController;
             _bot = new TelegramBotClient(Token);
             _bot.OnMessage += OnMessageHandler;
             _bot.OnCallbackQuery += OnButtonClick;
         }
 
-        public void StartReceiving()
+        public void StartReceiving(CancellationToken cancellationToken)
         {
-            _bot.StartReceiving();
-        }
-
-        public void StopReceiving()
-        {
-            if (_bot.IsReceiving)
-            {
-                _bot.StopReceiving();
-            }
+            _bot.StartReceiving(cancellationToken: cancellationToken);
         }
 
         private async void OnMessageHandler(object sender, MessageEventArgs e)
@@ -260,60 +254,66 @@ namespace RedmineTelegram
                 replyMarkup: ReplyMarkups.ListIssues);
         }
 
-        internal async void SendStatusChangeNotificationToWatcherOrCreator(long telegramUserId, 
-            JournalItem journal, Issue issue)
+        internal async void SendStatusChangeNotification(long telegramUserId, 
+            JournalItem journal, Issue issue, UserStatus userStatus)
         {
-            await _bot.SendTextMessageAsync(telegramUserId,
+            if (userStatus == UserStatus.IssueWatcher
+                || userStatus == UserStatus.IssueCreator)
+            {
+                await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {journal.UserName} изменил статус задачи {issue.Link}: {issue.Subject} "
                 + $"с \"{journal.OldIssueStatus}\" на \"{journal.CurrentIssueStatus}\"",
                 replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
-        }
-
-        internal async void SendStatusChangeNotificationToAssignedUser(long telegramUserId, 
-            JournalItem journal, Issue issue)
-        {
-            await _bot.SendTextMessageAsync(telegramUserId, 
+            }
+            else if (userStatus == UserStatus.AssignedToIssue)
+            {
+                await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {journal.UserName} изменил статус задачи {issue.Link}: {issue.Subject} "
                 + $"с \"{journal.OldIssueStatus}\" на \"{journal.CurrentIssueStatus}\"",
                 replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
+            }
         }
 
-        internal async void SendCommentNotificationToWatcherOrCreator(long telegramUserId, 
-            JournalItem journal, Issue issue)
+        internal async void SendCommentNotification(long telegramUserId, 
+            JournalItem journal, Issue issue, UserStatus userStatus)
         {
-            await _bot.SendTextMessageAsync(telegramUserId,
+            if (userStatus == UserStatus.IssueWatcher 
+                || userStatus == UserStatus.IssueCreator)
+            {
+                await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {journal.UserName} добавил комментарий к задаче {issue.Link}: {issue.Subject}:" + '\n'
                 + journal.Comment,
                 replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueWithoutKeyboardMarkupCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
-        }
-
-        internal async void SendCommentNotificationToAssignedUser(long telegramUserId, 
-            JournalItem journal, Issue issue)
-        {
-            await _bot.SendTextMessageAsync(telegramUserId,
-                $"⚡️ {journal.UserName} добавил комментарий к задаче {issue.Link}: {issue.Subject}:" + '\n' 
+            }
+            else if (userStatus == UserStatus.AssignedToIssue)
+            {
+                await _bot.SendTextMessageAsync(telegramUserId,
+                $"⚡️ {journal.UserName} добавил комментарий к задаче {issue.Link}: {issue.Subject}:" + '\n'
                 + journal.Comment,
                 replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
+            }
         }
 
-        internal async void SendNewIssueToWatcher(long telegramUserId, Issue issue)
+        internal async void SendNewIssueNotification(long telegramUserId, Issue issue, UserStatus userStatus)
         {
-            await _bot.SendTextMessageAsync(telegramUserId,
-                $"⚡️ {issue.CreatorName} назначил вас наблюдалетем за задачей {issue.Link}: {issue.Subject}",
-                replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueWithoutKeyboardMarkupCallbackData(issue.Id),
-                parseMode: ParseMode.Html);
-        }
-
-        internal async void SendNewIssueToAssignedUser(long telegramUserId, Issue issue)
-        {
-            await _bot.SendTextMessageAsync(telegramUserId,
+            if (userStatus == UserStatus.AssignedToIssue)
+            {
+                await _bot.SendTextMessageAsync(telegramUserId,
                 $"⚡️ {issue.CreatorName} назначил на вас новую задачу {issue.Link}: {issue.Subject}",
                 replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueCallbackData(issue.Id),
                 parseMode: ParseMode.Html);
+            }
+            else if (userStatus == UserStatus.IssueWatcher)
+            {
+                await _bot.SendTextMessageAsync(telegramUserId,
+                $"⚡️ {issue.CreatorName} назначил вас наблюдалетем за задачей {issue.Link}: {issue.Subject}",
+                replyMarkup: ReplyMarkups.GetShowInfoWithShowIssueWithoutKeyboardMarkupCallbackData(issue.Id),
+                parseMode: ParseMode.Html);
+            }
         }
     }
 }
